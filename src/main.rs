@@ -1,30 +1,6 @@
 #![ allow( dead_code ) ]
 
-/*
- * Types for core state
- */
-
-struct Core {
-    //
-}
-
-/*
- * Types for instuction
- */
-
-enum Opcode {
-    OppImm = 0b0010011
-}
-
-struct InsAddi {
-    rd: u32,
-    rs1: u32,
-    imm: u32
-}
-
-enum Ins {
-    Addi(InsAddi)
-}
+mod test;
 
 const MEMSIZE: usize = 1024;
 const REG_NAMES: [&str; 33] = [
@@ -64,9 +40,27 @@ const REG_NAMES: [&str; 33] = [
 ];
 
 /*
+ * Main structure for core state
+ */
+struct Core {
+    memory: [u8; MEMSIZE],
+    regs: [i32;33]
+}
+
+enum Opcode {
+    OppImm = 0b0010011
+}
+
+enum Funct3 {
+    Addi = 0b000,
+    Slti = 0b010,
+    Sltiu = 0b011
+}
+
+/*
  * dump 10 bytes starting from index
  */
-fn dump_mem(mem: [u8;MEMSIZE], addr: usize) {
+fn _dump_mem(mem: [u8;MEMSIZE], addr: usize) {
     let range = 10;
     let mut i = 0;
     while i < range {
@@ -75,12 +69,14 @@ fn dump_mem(mem: [u8;MEMSIZE], addr: usize) {
     }
 }
 
-fn dump_regs(regs: [i32;33]) {
-    println!("\n{:6} {:<10} {}", "Name", "Dec", "Hex");
-    println!(  "{:6} {:<10} {}", "----", "---", "---");
+fn dump_regs(core: Core) -> Core {
+    let regs = core.regs;
+    println!("{:6} {:<10} {}", "Name", "Dec", "Hex");
+    println!("{:6} {:<10} {}", "----", "---", "---");
     for i in 0..=32 {
         println!("{:6} {:<10} {:#010x}", REG_NAMES[i], regs[i], regs[i]);
     }
+    return core;
 }
 
 fn take_range(start: u32, end: u32, ins: u32) -> u32 {
@@ -97,47 +93,49 @@ fn sign_extend(ins: u32, bits: u32) -> i32 {
     };
 }
 
-fn parse_ins(ins: u32) -> Ins {
+fn eval(ins: u32, mut core: Core) -> Core {
     let opcode = take_range(6, 0, ins);
-    println!("opcode: {}", opcode);
-
     if opcode == Opcode::OppImm as u32 {
-        let immb31 = take_range(31,31,ins);
-        println!("immb31: {}", immb31);
-        return Ins::Addi(InsAddi {
-            rd: take_range(11,7,ins),
-            rs1: take_range(19,15,ins),
-            imm: take_range(31,20,ins)
-        });
-    }
+        let funct3 = take_range(14,12,ins);
+        let rd = take_range(11,7,ins);
+        let rs1 = take_range(19,15,ins);
+        let i_imm = take_range(31,20,ins);
+        let signed_imm = sign_extend(i_imm,12);
 
+        if funct3 == Funct3::Addi as u32 {
+            core.regs[rd as usize] = core.regs[rs1 as usize] + signed_imm;
+        }
+        else if funct3 == Funct3::Slti as u32 {
+            core.regs[rd as usize] = if core.regs[rs1 as usize] < signed_imm {
+                1
+            } else {
+                0
+            };
+        }
+        else if funct3 == Funct3::Sltiu as u32 {
+            core.regs[rd as usize] =
+                if (core.regs[rs1 as usize] as u32) < signed_imm as u32 {
+                    1
+                } else {
+                    0
+                };
+        }
+        else {
+            println!("Unknown funct3 in op_imm: {}", funct3);
+        }
+    }
     else {
         println!("Unknown opcode: {}", opcode);
     }
-
-    let dummy = InsAddi { rd: 0, rs1: 0, imm: 0 };
-    return Ins::Addi(dummy);
+    return core;
 }
 
-fn eval(ins: Ins, mut regs: [i32;33]) -> [i32;33] {
-    match ins {
-        Ins::Addi(InsAddi{rd, rs1, imm}) => {
-            println!("rd: {}", REG_NAMES[rd as usize]);
-            println!("rs: {}", REG_NAMES[rs1 as usize]);
-            println!("imm: {}", sign_extend(imm, 12));
-            regs[rd as usize] = regs[rs1 as usize] + sign_extend(imm,12);
-        }
-    }
-    return regs;
-}
 
 fn main() {
-    let mut memory: [u8;MEMSIZE] = [0;MEMSIZE];
-    let mut regs: [i32;33] = [0;33];
-    memory[0] = 1;
-    let test = 0xfff10113; // addi sp sp -1
-    let ins: Ins = parse_ins(test);
-    regs = eval(ins, regs);
-    dump_regs(regs);
+    let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+//    let test = 0x0000b713; // sltiu a4 ra 0
+    let test = 0x8000b713; // sltiu a4 ra -2048
+    core.regs[1] = 0;
+    core = eval(test, core);
+    dump_regs(core);
 }
-
