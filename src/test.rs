@@ -64,4 +64,38 @@ mod tests {
         core = eval(0x8000b713, core);
         assert_eq!(1, core.regs[14]);
     }
+
+    #[test]
+    fn andi_a4_ra_240() {
+        let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+        core = eval(0x0f00f713, core);
+        assert_eq!(0, core.regs[14]);
+
+        core.regs[1] = 16;
+        core = eval(0x0f00f713, core);
+        assert_eq!(16, core.regs[14]);
+    }
+
+    #[test]
+    fn ori_a4_ra_minus_241() {
+        let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+        core = eval(0xf0f0e713, core);
+        assert_eq!(-241, core.regs[14]);
+
+        core.regs[1] = 16;
+        core = eval(0xf0f0e713, core);
+        assert_eq!(-225, core.regs[14]);
+    }
+
+    #[test]
+    fn xori_a4_ra_minus_241() {
+        let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+        core = eval(0xf0f0c713, core);
+        assert_eq!(-241, core.regs[14]);
+
+        core.regs[1] = 156;
+        core = eval(0xf0f0c713, core);
+        assert_eq!(-109, core.regs[14]);
+    }
+
 }

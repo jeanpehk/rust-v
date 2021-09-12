@@ -21,7 +21,10 @@ enum Opcode {
 enum Funct3 {
     Addi = 0b000,
     Slti = 0b010,
-    Sltiu = 0b011
+    Sltiu = 0b011,
+    Andi = 0b111,
+    Ori = 0b110,
+    Xori = 0b100
 }
 
 /*
@@ -67,13 +70,13 @@ fn eval(ins: u32, mut core: Core) -> Core {
         let rd = take_range(11,7,ins);
         let rs1 = take_range(19,15,ins);
         let i_imm = take_range(31,20,ins);
-        let signed_imm = sign_extend(i_imm,12);
+        let signed_i_imm = sign_extend(i_imm,12);
 
         if funct3 == Funct3::Addi as u32 {
-            core.regs[rd as usize] = core.regs[rs1 as usize] + signed_imm;
+            core.regs[rd as usize] = core.regs[rs1 as usize] + signed_i_imm;
         }
         else if funct3 == Funct3::Slti as u32 {
-            core.regs[rd as usize] = if core.regs[rs1 as usize] < signed_imm {
+            core.regs[rd as usize] = if core.regs[rs1 as usize] < signed_i_imm {
                 1
             } else {
                 0
@@ -81,11 +84,20 @@ fn eval(ins: u32, mut core: Core) -> Core {
         }
         else if funct3 == Funct3::Sltiu as u32 {
             core.regs[rd as usize] =
-                if (core.regs[rs1 as usize] as u32) < signed_imm as u32 {
+                if (core.regs[rs1 as usize] as u32) < signed_i_imm as u32 {
                     1
                 } else {
                     0
                 };
+        }
+        else if funct3 == Funct3::Andi as u32 {
+            core.regs[rd as usize] = core.regs[rs1 as usize] & signed_i_imm;
+        }
+        else if funct3 == Funct3::Ori as u32 {
+            core.regs[rd as usize] = core.regs[rs1 as usize] | signed_i_imm;
+        }
+        else if funct3 == Funct3::Xori as u32 {
+            core.regs[rd as usize] = core.regs[rs1 as usize] ^ signed_i_imm;
         }
         else {
             println!("Unknown funct3 in op_imm: {}", funct3);
@@ -100,9 +112,8 @@ fn eval(ins: u32, mut core: Core) -> Core {
 
 fn main() {
     let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
-//    let test = 0x0000b713; // sltiu a4 ra 0
-    let test = 0x8000b713; // sltiu a4 ra -2048
-    core.regs[1] = 0;
+    let test = 0xf0f0c713; // xori a4,ra,-241
+    core.regs[1] = 156;
     core = eval(test, core);
     dump_regs(core);
 }
