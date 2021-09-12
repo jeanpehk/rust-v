@@ -1,4 +1,4 @@
-# rustv
+# rust-v
 
 RISC-V Core in rust.
 
