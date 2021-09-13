@@ -98,4 +98,50 @@ mod tests {
         assert_eq!(-109, core.regs[14]);
     }
 
+    #[test]
+    fn slli_a4_ra_7() {
+        let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+        core = eval(0x00709713, core);
+        assert_eq!(0, core.regs[14]);
+
+        core.regs[1] = 156;
+        core = eval(0x00709713, core);
+        assert_eq!(19968, core.regs[14]);
+
+        core.regs[1] = -1;
+        core = eval(0x00709713, core);
+        assert_eq!(-128, core.regs[14]);
+    }
+
+    #[test]
+    fn srli_a4_ra_1() {
+        let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+        core = eval(0x0010d713, core);
+        assert_eq!(0, core.regs[14]);
+
+        core.regs[1] = 5;
+        core = eval(0x0010d713, core);
+        assert_eq!(2, core.regs[14]);
+
+        core.regs[1] = -10;
+        core = eval(0x0010d713, core);
+        assert_eq!(2147483643, core.regs[14]);
+
+    }
+
+    #[test]
+    fn srai_a4_ra_14() {
+        let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+        core.regs[1] = 5;
+        core = eval(0x40e0d713, core);
+        assert_eq!(0, core.regs[14]);
+
+        core.regs[1] = -10;
+        core = eval(0x40e0d713, core);
+        assert_eq!(-1, core.regs[14]);
+
+        core.regs[1] = 32768;
+        core = eval(0x40e0d713, core);
+        assert_eq!(2, core.regs[14]);
+    }
 }

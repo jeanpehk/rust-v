@@ -24,7 +24,9 @@ enum Funct3 {
     Sltiu = 0b011,
     Andi = 0b111,
     Ori = 0b110,
-    Xori = 0b100
+    Xori = 0b100,
+    Slli = 0b001,
+    Srxi = 0b101, // SRLI or SRAI, set in bit 30
 }
 
 /*
@@ -99,6 +101,22 @@ fn eval(ins: u32, mut core: Core) -> Core {
         else if funct3 == Funct3::Xori as u32 {
             core.regs[rd as usize] = core.regs[rs1 as usize] ^ signed_i_imm;
         }
+        else if funct3 == Funct3::Slli as u32 {
+            let shamt = i_imm & 0b11111;
+            core.regs[rd as usize] = core.regs[rs1 as usize] << shamt;
+        }
+        else if funct3 == Funct3::Srxi as u32 {
+            let arithmetic = take_range(30,30, ins);
+            let shamt = i_imm & 0b11111;
+            if arithmetic == 1 {
+                core.regs[rd as usize] = core.regs[rs1 as usize] >> shamt;
+            }
+            else {
+                let ans = core.regs[rs1 as usize] as u32 >> shamt;
+                core.regs[rd as usize] = ans as i32;
+            }
+        }
+
         else {
             println!("Unknown funct3 in op_imm: {}", funct3);
         }
@@ -112,8 +130,8 @@ fn eval(ins: u32, mut core: Core) -> Core {
 
 fn main() {
     let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
-    let test = 0xf0f0c713; // xori a4,ra,-241
-    core.regs[1] = 156;
+    let test = 0x0010d713; // srli a4,ra,0x1
+    core.regs[1] = 5;
     core = eval(test, core);
     dump_regs(core);
 }
