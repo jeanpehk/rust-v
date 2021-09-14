@@ -15,7 +15,9 @@ struct Core {
 }
 
 enum Opcode {
-    OppImm = 0b0010011
+    OppImm = 0b0010011,
+    Lui = 0b0110111,
+    Auipc = 0b0010111
 }
 
 enum Funct3 {
@@ -121,6 +123,17 @@ fn eval(ins: u32, mut core: Core) -> Core {
             println!("Unknown funct3 in op_imm: {}", funct3);
         }
     }
+    else if opcode == Opcode::Lui as u32 {
+        let rd = take_range(11,7,ins);
+        let u_imm = take_range(31,12,ins);
+        core.regs[rd as usize] = (u_imm << 12) as i32;
+    }
+    else if opcode == Opcode::Auipc as u32 {
+        let rd = take_range(11,7,ins);
+        let u_imm = take_range(31,12,ins);
+        let offset = (u_imm << 12) as i32;
+        core.regs[rd as usize] = core.regs[32] + offset;
+    }
     else {
         println!("Unknown opcode: {}", opcode);
     }
@@ -130,8 +143,8 @@ fn eval(ins: u32, mut core: Core) -> Core {
 
 fn main() {
     let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
-    let test = 0x0010d713; // srli a4,ra,0x1
-    core.regs[1] = 5;
+    let test = 0x00002517; // auipc a0 2
+    core.regs[1] = 0;
     core = eval(test, core);
     dump_regs(core);
 }

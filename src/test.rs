@@ -144,4 +144,23 @@ mod tests {
         core = eval(0x40e0d713, core);
         assert_eq!(2, core.regs[14]);
     }
+
+    #[test]
+    fn lui_ra_0x7ffff() {
+        let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+        core = eval(0x7ffff0b7, core);
+        assert_eq!(0x7ffff000, core.regs[1]);
+    }
+
+    #[test]
+    fn auipc_a0_2() {
+        let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+        core = eval(0x00002517, core);
+        core.regs[32] = 0;
+        assert_eq!(0x00002000, core.regs[10]);
+
+        core.regs[32] = 4;
+        core = eval(0x00002517, core);
+        assert_eq!(0x00002004, core.regs[10]);
+    }
 }
