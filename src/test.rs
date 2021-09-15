@@ -163,4 +163,149 @@ mod tests {
         core = eval(0x00002517, core);
         assert_eq!(0x00002004, core.regs[10]);
     }
-}
+
+    #[test]
+    fn add_a4_ra_sp() {
+        let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+        core.regs[1] = 1;
+        core.regs[2] = -5;
+        core = eval(0x00208733, core);
+        assert_eq!(-4, core.regs[14]);
+
+        core.regs[1] = 159;
+        core.regs[2] = 123;
+        core = eval(0x00208733, core);
+        assert_eq!(282, core.regs[14]);
+    }
+
+    #[test]
+    fn sub_a4_ra_sp() {
+        let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+        core.regs[1] = 123;
+        core.regs[2] = 23;
+        core = eval(0x40208733, core);
+        assert_eq!(100, core.regs[14]);
+
+        core.regs[1] = -12;
+        core.regs[2] = -5;
+        core = eval(0x40208733, core);
+        assert_eq!(-7, core.regs[14]);
+    }
+
+    #[test]
+    fn slt_a4_ra_sp() {
+       let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+       core.regs[1] = 2;
+       core.regs[2] = 3;
+       core = eval(0x0020a733, core);
+       assert_eq!(1, core.regs[14]);
+
+       core.regs[1] = 3;
+       core.regs[2] = 3;
+       core = eval(0x0020a733, core);
+       assert_eq!(0, core.regs[14]);
+
+       core.regs[1] = -1;
+       core.regs[2] = 3;
+       core = eval(0x0020a733, core);
+       assert_eq!(1, core.regs[14]);
+    }
+
+    #[test]
+    fn sltu_a4_ra_sp() {
+       let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+       core.regs[1] = 2;
+       core.regs[2] = 3;
+       core = eval(0x0020b733, core);
+       assert_eq!(1, core.regs[14]);
+
+       core.regs[1] = -1;
+       core.regs[2] = 3;
+       core = eval(0x0020b733, core);
+       assert_eq!(0, core.regs[14]);
+    }
+
+    #[test]
+    fn and_a4_ra_sp() {
+       let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+       core.regs[1] = -4723;
+       core.regs[2] = 32489;
+       core = eval(0x0020f733, core);
+       assert_eq!(27785, core.regs[14]);
+
+       core.regs[1] = 17;
+       core.regs[2] = 7;
+       core = eval(0x0020f733, core);
+       assert_eq!(1, core.regs[14]);
+    }
+
+    #[test]
+    fn or_a4_ra_sp() {
+       let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+       core.regs[1] = -4723;
+       core.regs[2] = 32489;
+       core = eval(0x0020e733, core);
+       assert_eq!(-19, core.regs[14]);
+
+       core.regs[1] = 17;
+       core.regs[2] = 7;
+       core = eval(0x0020e733, core);
+       assert_eq!(23, core.regs[14]);
+    }
+
+    #[test]
+    fn xor_a4_ra_sp() {
+       let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+       core.regs[1] = -4723;
+       core.regs[2] = 32489;
+       core = eval(0x0020c733, core);
+       assert_eq!(-27804, core.regs[14]);
+
+       core.regs[1] = 17;
+       core.regs[2] = 7;
+       core = eval(0x0020c733, core);
+       assert_eq!(22, core.regs[14]);
+    }
+
+    #[test]
+    fn sll_a4_ra_sp() {
+       let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+       core.regs[1] = -4723;
+       core.regs[2] = 32489;
+       core = eval(0x00209733, core);
+       assert_eq!(-2418176, core.regs[14]);
+
+       core.regs[1] = 17;
+       core.regs[2] = 7;
+       core = eval(0x00209733, core);
+       assert_eq!(2176, core.regs[14]);
+    }
+
+    #[test]
+    fn srl_a4_ra_sp() {
+       let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+       core.regs[1] = -4723;
+       core.regs[2] = 32489;
+       core = eval(0x0020d733, core);
+       assert_eq!(8388598, core.regs[14]);
+
+       core.regs[1] = 1024;
+       core.regs[2] = 4;
+       core = eval(0x0020d733, core);
+       assert_eq!(64, core.regs[14]);
+    }
+
+    #[test]
+    fn sra_a4_ra_sp() {
+       let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+       core.regs[1] = -4723;
+       core.regs[2] = 32489;
+       core = eval(0x4020d733, core);
+       assert_eq!(-10, core.regs[14]);
+
+       core.regs[1] = 1024;
+       core.regs[2] = 4;
+       core = eval(0x4020d733, core);
+       assert_eq!(64, core.regs[14]);
+    }
+ }

@@ -15,7 +15,8 @@ struct Core {
 }
 
 enum Opcode {
-    OppImm = 0b0010011,
+    Op = 0b0110011,
+    OpImm = 0b0010011,
     Lui = 0b0110111,
     Auipc = 0b0010111
 }
@@ -69,7 +70,8 @@ fn sign_extend(ins: u32, bits: u32) -> i32 {
 
 fn eval(ins: u32, mut core: Core) -> Core {
     let opcode = take_range(6, 0, ins);
-    if opcode == Opcode::OppImm as u32 {
+
+    if opcode == Opcode::OpImm as u32 {
         let funct3 = take_range(14,12,ins);
         let rd = take_range(11,7,ins);
         let rs1 = take_range(19,15,ins);
@@ -123,6 +125,75 @@ fn eval(ins: u32, mut core: Core) -> Core {
             println!("Unknown funct3 in op_imm: {}", funct3);
         }
     }
+    else if opcode == Opcode::Op as u32 {
+        let funct7 = take_range(31,25,ins);
+        let rs2 = take_range(24,20,ins) as usize;
+        let rs1 = take_range(19,15,ins) as usize;
+        let funct3 = take_range(14,12,ins);
+        let rd = take_range(11,7,ins) as usize;
+
+
+        // add = 0b000 / 0b0000..
+        // sub = 0b000 / 0b0100..
+        if funct3 == 0b000 {
+            // add
+            if funct7 == 0 {
+                core.regs[rd] = core.regs[rs1] + core.regs[rs2];
+            }
+            // sub
+            else {
+                core.regs[rd] = core.regs[rs1] - core.regs[rs2];
+            }
+        }
+        // slt = 0b010 / 0
+        else if funct3 == 0b010 {
+            core.regs[rd] = if core.regs[rs1] < core.regs[rs2] {
+                1
+            }
+            else {
+                0
+            };
+        }
+        // sltu = 0b11 / 0
+        else if funct3 == 0b11 {
+            core.regs[rd] = if (core.regs[rs1] as u32) < (core.regs[rs2] as u32) {
+                1
+            }
+            else {
+                0
+            };
+        }
+        // xor = 0b100 / 0
+        else if funct3 == 0b100 {
+            core.regs[rd] = core.regs[rs1] ^ core.regs[rs2];
+        }
+        // sll = 0b001 / 0
+        else if funct3 == 0b001 {
+            let shamt = core.regs[rs2] & 0b11111;
+            core.regs[rd] = core.regs[rs1] << shamt;
+        }
+        // srl = 0b101 / 0
+        // sra = 0b101 / 0b0100..
+        else if funct3 == 0b101 {
+            let shamt = core.regs[rs2] & 0b11111;
+            if funct7 == 0 {
+                core.regs[rd] = ((core.regs[rs1] as u32) >> shamt) as i32;
+            }
+            else {
+                core.regs[rd] = core.regs[rs1] >> shamt;
+            }
+        }
+        // or = 0b110 / 0
+        else if funct3 == 0b110 {
+            core.regs[rd] = core.regs[rs1] | core.regs[rs2];
+        }
+        // and = 0b111 / 0
+        else if funct3 == 0b111 {
+            core.regs[rd] = core.regs[rs1] & core.regs[rs2];
+        }
+    }
+
+
     else if opcode == Opcode::Lui as u32 {
         let rd = take_range(11,7,ins);
         let u_imm = take_range(31,12,ins);
@@ -143,7 +214,8 @@ fn eval(ins: u32, mut core: Core) -> Core {
 
 fn main() {
     let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
-    let test = 0x00002517; // auipc a0 2
+    // 40208733            sub a4,ra,sp
+    let test = 0x40208733; // sub a4 ra sp
     core.regs[1] = 0;
     core = eval(test, core);
     dump_regs(core);
