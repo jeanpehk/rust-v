@@ -18,7 +18,9 @@ enum Opcode {
     Op = 0b0110011,
     OpImm = 0b0010011,
     Lui = 0b0110111,
-    Auipc = 0b0010111
+    Auipc = 0b0010111,
+    Jal = 0b1101111,
+    Jalr = 0b1100111
 }
 
 enum Funct3 {
@@ -192,8 +194,6 @@ fn eval(ins: u32, mut core: Core) -> Core {
             core.regs[rd] = core.regs[rs1] & core.regs[rs2];
         }
     }
-
-
     else if opcode == Opcode::Lui as u32 {
         let rd = take_range(11,7,ins);
         let u_imm = take_range(31,12,ins);
@@ -205,17 +205,35 @@ fn eval(ins: u32, mut core: Core) -> Core {
         let offset = (u_imm << 12) as i32;
         core.regs[rd as usize] = core.regs[32] + offset;
     }
+    else if opcode == Opcode::Jal as u32 {
+        let imm20 = take_range(31,31,ins);
+        let imm10_1 = take_range(30,21,ins);
+        let imm11 = take_range(20,20,ins);
+        let imm19_12 = take_range(19,12,ins);
+        let rd = take_range(11,7,ins) as usize;
+        let imm = (imm20<<20) | (imm19_12<<12) | (imm11<<11) | (imm10_1<<1);
+        let signed = sign_extend(imm, 21);
+        core.regs[rd] = core.regs[32]+4;
+        core.regs[32] = core.regs[32]+signed;
+    }
+    else if opcode == Opcode::Jalr as u32 {
+        let imm = sign_extend(take_range(31,20,ins),12);
+        let rs1 = take_range(19,15,ins) as usize;
+        let _funct3 = take_range(14,12,ins); // when do we need this?
+        let rd = take_range(11,7,ins) as usize;
+        let val = imm+core.regs[rs1];
+        core.regs[rd] = core.regs[32]+4;
+        core.regs[32] = if val%2 == 0 {val} else {val-1};
+    }
     else {
         println!("Unknown opcode: {}", opcode);
     }
     return core;
 }
 
-
 fn main() {
     let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
-    // 40208733            sub a4,ra,sp
-    let test = 0x40208733; // sub a4 ra sp
+    let test = 0xffc302e7;
     core.regs[1] = 0;
     core = eval(test, core);
     dump_regs(core);
