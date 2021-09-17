@@ -34,6 +34,29 @@ enum Funct3 {
     Srxi = 0b101, // SRLI or SRAI, set in bit 30
 }
 
+impl Funct3 {
+    const ADDI: Funct3 = Funct3::Addi;
+    const SLTI: Funct3 = Funct3::Slti;
+    const SLTIU: Funct3 = Funct3::Sltiu;
+    const ANDI: Funct3 = Funct3::Andi;
+    const ORI: Funct3 = Funct3::Ori;
+    const XORI: Funct3 = Funct3::Xori;
+    const SLLI: Funct3 = Funct3::Slli;
+    const SRLI: Funct3 = Funct3::Srxi;
+    const SRAI: Funct3 = Funct3::Srxi;
+    const ADD: Funct3 = Funct3::Addi;
+    const SUB: Funct3 = Funct3::Addi;
+    const SLT: Funct3 = Funct3::Slti;
+    const SLTU: Funct3 = Funct3::Sltiu;
+    const XOR: Funct3 = Funct3::Xori;
+    const SLL: Funct3 = Funct3::Slli;
+    const SRL: Funct3 = Funct3::Srxi;
+    const SRA: Funct3 = Funct3::Srxi;
+    const OR: Funct3 = Funct3::Ori;
+    const AND: Funct3 = Funct3::Andi;
+}
+
+
 /*
  * dump 10 bytes starting from index
  */
@@ -134,10 +157,8 @@ fn eval(ins: u32, mut core: Core) -> Core {
         let funct3 = take_range(14,12,ins);
         let rd = take_range(11,7,ins) as usize;
 
-
-        // add = 0b000 / 0b0000..
-        // sub = 0b000 / 0b0100..
-        if funct3 == 0b000 {
+        // add or sub
+        if funct3 == Funct3::ADD as u32 {
             // add
             if funct7 == 0 {
                 core.regs[rd] = core.regs[rs1] + core.regs[rs2];
@@ -147,8 +168,7 @@ fn eval(ins: u32, mut core: Core) -> Core {
                 core.regs[rd] = core.regs[rs1] - core.regs[rs2];
             }
         }
-        // slt = 0b010 / 0
-        else if funct3 == 0b010 {
+        else if funct3 == Funct3::SLT as u32 {
             core.regs[rd] = if core.regs[rs1] < core.regs[rs2] {
                 1
             }
@@ -156,8 +176,7 @@ fn eval(ins: u32, mut core: Core) -> Core {
                 0
             };
         }
-        // sltu = 0b11 / 0
-        else if funct3 == 0b11 {
+        else if funct3 == Funct3::SLTU as u32 {
             core.regs[rd] = if (core.regs[rs1] as u32) < (core.regs[rs2] as u32) {
                 1
             }
@@ -165,18 +184,15 @@ fn eval(ins: u32, mut core: Core) -> Core {
                 0
             };
         }
-        // xor = 0b100 / 0
-        else if funct3 == 0b100 {
+        else if funct3 == Funct3::XOR as u32 {
             core.regs[rd] = core.regs[rs1] ^ core.regs[rs2];
         }
-        // sll = 0b001 / 0
-        else if funct3 == 0b001 {
+        else if funct3 == Funct3::SLL as u32 {
             let shamt = core.regs[rs2] & 0b11111;
             core.regs[rd] = core.regs[rs1] << shamt;
         }
-        // srl = 0b101 / 0
-        // sra = 0b101 / 0b0100..
-        else if funct3 == 0b101 {
+        // srl or sra
+        else if funct3 == Funct3::SRL as u32 {
             let shamt = core.regs[rs2] & 0b11111;
             if funct7 == 0 {
                 core.regs[rd] = ((core.regs[rs1] as u32) >> shamt) as i32;
@@ -185,12 +201,10 @@ fn eval(ins: u32, mut core: Core) -> Core {
                 core.regs[rd] = core.regs[rs1] >> shamt;
             }
         }
-        // or = 0b110 / 0
-        else if funct3 == 0b110 {
+        else if funct3 == Funct3::OR as u32 {
             core.regs[rd] = core.regs[rs1] | core.regs[rs2];
         }
-        // and = 0b111 / 0
-        else if funct3 == 0b111 {
+        else if funct3 == Funct3::AND as u32 {
             core.regs[rd] = core.regs[rs1] & core.regs[rs2];
         }
     }
