@@ -346,4 +346,77 @@ mod tests {
         assert_eq!(4, core.regs[5]);
     }
 
+    #[test]
+    fn beq_ra_sp_12() {
+        let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+        core.regs[32] = 4;
+        core = eval(0x00208663, core);
+        assert_eq!(16, core.regs[32]);
+    }
+
+    #[test]
+    fn bne_ra_sp_12() {
+        let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+        core.regs[32] = 4;
+        core.regs[1] = 1;
+        core.regs[2] = 2;
+        core = eval(0x00209663, core);
+        assert_eq!(16, core.regs[32]);
+    }
+
+    #[test]
+    fn blt_ra_sp_12() {
+        let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+        core.regs[32] = 4;
+        core.regs[1] = 1;
+        core.regs[2] = 2;
+        core = eval(0x0020c663, core);
+        assert_eq!(16, core.regs[32]);
+
+        core.regs[32] = 4;
+        core.regs[1] = -1;
+        core.regs[2] = 2;
+        core = eval(0x0020c663, core);
+        assert_eq!(16, core.regs[32]);
+    }
+
+    #[test]
+    fn bltu_ra_sp_12() {
+        let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+        core.regs[32] = 4;
+        core.regs[1] = -1;
+        core.regs[2] = 2;
+        core = eval(0x0020e663, core);
+        assert_ne!(16, core.regs[32]);
+    }
+
+    #[test]
+    fn bge_ra_sp_12() {
+        let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+        core.regs[1] = 2;
+        core.regs[2] = 1;
+        core = eval(0x0020d663, core);
+        assert_eq!(12, core.regs[32]);
+
+        core.regs[32] = 0;
+        core.regs[1] = -1;
+        core.regs[2] = 2;
+        core = eval(0x0020d663, core);
+        assert_ne!(12, core.regs[32]);
+    }
+
+    #[test]
+    fn bgeu_ra_sp_12() {
+        let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+        core.regs[1] = 2;
+        core.regs[2] = 1;
+        core = eval(0x0020f663, core);
+        assert_eq!(12, core.regs[32]);
+
+        core.regs[32] = 0;
+        core.regs[1] = -1;
+        core.regs[2] = 2;
+        core = eval(0x0020f663, core);
+        assert_eq!(12, core.regs[32]);
+    }
  }

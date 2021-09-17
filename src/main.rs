@@ -20,7 +20,8 @@ enum Opcode {
     Lui = 0b0110111,
     Auipc = 0b0010111,
     Jal = 0b1101111,
-    Jalr = 0b1100111
+    Jalr = 0b1100111,
+    Branch = 0b1100011
 }
 
 enum Funct3 {
@@ -54,6 +55,14 @@ impl Funct3 {
     const SRA: Funct3 = Funct3::Srxi;
     const OR: Funct3 = Funct3::Ori;
     const AND: Funct3 = Funct3::Andi;
+
+    // Branch instructions
+    const BEQ: Funct3 = Funct3::Addi;
+    const BNE: Funct3 = Funct3::Slli;
+    const BLT: Funct3 = Funct3::Xori;
+    const BLTU: Funct3 = Funct3::Ori;
+    const BGE: Funct3 = Funct3::Srxi;
+    const BGEU: Funct3 = Funct3::Andi;
 }
 
 
@@ -239,6 +248,57 @@ fn eval(ins: u32, mut core: Core) -> Core {
         core.regs[rd] = core.regs[32]+4;
         core.regs[32] = if val%2 == 0 {val} else {val-1};
     }
+    else if opcode == Opcode::Branch as u32 {
+        let imm12 = take_range(31,31,ins);
+        let imm10_5 = take_range(30,25,ins);
+        let rs2 = take_range(24,20,ins) as usize;
+        let rs1 = take_range(19,15,ins) as usize;
+        let funct3 = take_range(14,12,ins);
+        let imm4_1 = take_range(11,8,ins);
+        let imm11 = take_range(7,7,ins);
+        let imm = sign_extend((imm12<<12)|(imm11<<11)|(imm10_5<<5)|(imm4_1<<1),13);
+        let target_addr = core.regs[32] + imm;
+        println!("imm: {}", imm);
+        println!("rs1: {}", rs1);
+        println!("rs2: {}", rs2);
+
+        if funct3 == Funct3::BEQ as u32 {
+            println!("beq");
+            if core.regs[rs1] == core.regs[rs2] {
+                core.regs[32] = target_addr;
+            }
+        }
+        else if funct3 == Funct3::BNE as u32 {
+            println!("bne");
+            if core.regs[rs1] != core.regs[rs2] {
+                core.regs[32] = target_addr;
+            }
+        }
+        else if funct3 == Funct3::BLT as u32 {
+            println!("blt");
+            if core.regs[rs1] < core.regs[rs2] {
+                core.regs[32] = target_addr;
+            }
+
+        }
+        else if funct3 == Funct3::BLTU as u32 {
+            if (core.regs[rs1] as u32) < (core.regs[rs2] as u32) {
+                core.regs[32] = target_addr;
+            }
+
+        }
+        else if funct3 == Funct3::BGE as u32 {
+            if core.regs[rs1] > core.regs[rs2] {
+                core.regs[32] = target_addr;
+            }
+
+        }
+        else if funct3 == Funct3::BGEU as u32 {
+            if (core.regs[rs1] as u32) > (core.regs[rs2] as u32) {
+                core.regs[32] = target_addr;
+            }
+        }
+    }
     else {
         println!("Unknown opcode: {}", opcode);
     }
@@ -247,8 +307,10 @@ fn eval(ins: u32, mut core: Core) -> Core {
 
 fn main() {
     let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
-    let test = 0xffc302e7;
-    core.regs[1] = 0;
+    // 0020d663            bgeu ra,sp,12
+    let test = 0x0020f663;
+    core.regs[1] = -1;
+    core.regs[2] = 2;
     core = eval(test, core);
     dump_regs(core);
 }
