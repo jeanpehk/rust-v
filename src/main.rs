@@ -67,18 +67,31 @@ impl Funct3 {
     const BLTU: Funct3 = Funct3::Six;
     const BGE: Funct3 = Funct3::Five;
     const BGEU: Funct3 = Funct3::Seven;
+
+    // Load/Store
+    const LB: Funct3 = Funct3::Zero;
+    const LH: Funct3 = Funct3::One;
+    const LW: Funct3 = Funct3::Two;
+    const LBU: Funct3 = Funct3::Four;
+    const LHU: Funct3 = Funct3::Five;
+    const SB: Funct3 = Funct3::Zero;
+    const SH: Funct3 = Funct3::One;
+    const SW: Funct3 = Funct3::Two;
 }
 
 /*
  * dump 10 bytes starting from index
  */
-fn _dump_mem(mem: [u8;MEMSIZE], addr: usize) {
+fn dump_mem(core: Core, addr: usize) -> Core {
     let range = 10;
     let mut i = 0;
+    println!("{:11} {:5} {:3}", "Memory", "Dec",  "Hex");
+    println!("{:11} {:5} {:3}", "------", "---", "---");
     while i < range {
-        println!("{:#010x}: {:#02x}", addr+i, mem[addr+i]);
+        println!("{:#010x}: {:<#5} {:<#02x}", addr+i, core.memory[addr+i], core.memory[addr+i]);
         i += 1;
     }
+    return core;
 }
 
 fn dump_regs(core: Core) -> Core {
@@ -260,7 +273,7 @@ fn eval(ins: u32, mut core: Core) -> Core {
         let imm4_1 = take_range(11,8,ins);
         let imm11 = take_range(7,7,ins);
         let imm = sign_extend((imm12<<12)|(imm11<<11)|(imm10_5<<5)|(imm4_1<<1),13);
-        let target_addr = core.regs[32] + imm;
+        let target_addr = (((core.regs[32] + imm) as usize)%MEMSIZE) as i32;
 
         if funct3 == Funct3::BEQ as u32 {
             if core.regs[rs1] == core.regs[rs2] {
@@ -293,6 +306,61 @@ fn eval(ins: u32, mut core: Core) -> Core {
             }
         }
     }
+    else if opcode == Opcode::Load as u32 {
+        let imm = take_range(31,20,ins);
+        let rs1 = take_range(19,15,ins) as usize;
+        let width = take_range(14,12,ins);
+        let rd = take_range(11,7,ins) as usize;
+        let target_addr = ((sign_extend(imm,12)+core.regs[rs1]) as usize)%MEMSIZE;
+        println!("imm: {}", imm);
+        println!("rs1: {}", rs1);
+        println!("rd: {}", rd);
+        println!("width: {}", width);
+        println!("target_addr: {}", target_addr);
+        if width == Funct3::LB as u32 {
+            println!("lb");
+            core.regs[rd] = core.memory[target_addr] as i32;
+        }
+        else if width == Funct3::LH as u32 {
+            println!("lh");
+            let b1 = core.memory[target_addr] as u16;
+            let b2 = core.memory[target_addr+1] as u16;
+            core.regs[rd] = ((b2<<8) | b1) as i32;
+        }
+        else if width == Funct3::LW as u32 {
+            println!("lw");
+            let b1 = core.memory[target_addr] as u32;
+            let b2 = core.memory[target_addr+1] as u32;
+            let b3 = core.memory[target_addr+2] as u32;
+            let b4 = core.memory[target_addr+3] as u32;
+            core.regs[rd] = ((b4<<24) | (b3<<16) | (b2<<8) | b1) as i32;
+        }
+    }
+    else if opcode == Opcode::Store as u32 {
+        let imm11_5 = take_range(31,25,ins);
+        let rs2 = take_range(24,20,ins) as usize;
+        let rs1 = take_range(19,15,ins) as usize;
+        let width = take_range(14,12,ins);
+        let imm4_0 = take_range(11,7,ins);
+        let imm = (imm11_5<<5) | imm4_0;
+        let target_addr = ((sign_extend(imm,12)+core.regs[rs1]) as usize)%MEMSIZE;
+        if width == Funct3::SB as u32 {
+            println!("sb");
+            core.memory[target_addr] = core.regs[rs2] as u8;
+        }
+        else if width == Funct3::SH as u32 {
+            println!("sh");
+            core.memory[target_addr] = core.regs[rs2] as u8;
+            core.memory[target_addr+1] = (core.regs[rs2]>>8) as u8;
+        }
+        else if width == Funct3::SW as u32 {
+            println!("sw");
+            core.memory[target_addr] = core.regs[rs2] as u8;
+            core.memory[target_addr+1] = (core.regs[rs2]>>8) as u8;
+            core.memory[target_addr+2] = (core.regs[rs2]>>16) as u8;
+            core.memory[target_addr+3] = (core.regs[rs2]>>24) as u8;
+        }
+    }
     else {
         println!("Unknown opcode: {}", opcode);
     }
@@ -301,10 +369,18 @@ fn eval(ins: u32, mut core: Core) -> Core {
 
 fn main() {
     let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
-    // 0x0020d663 := bgeu ra,sp,12
-    let test = 0x0020f663;
-    core.regs[1] = -1;
-    core.regs[2] = 2;
+    // 00008703            lb  a4,0(ra)
+    // 00209703            lh  a4,2(ra)
+    // 0080a703            lw  a4,8(ra) // 0000a703 lw a4,0(ra)
+    // 00208023            sb  sp,0(ra)
+    // 00209223            sh  sp,4(ra)
+    // 0020a423            sw  sp,8(ra)
+    let test = 0x0000a703;
+    core.regs[1] = 4;
+    core.regs[2] = 1;
+    core.memory[4] = 0x1;
+    core.memory[5] = 0x2;
     core = eval(test, core);
-    dump_regs(core);
+    core = dump_regs(core);
+    dump_mem(core, 0);
 }
