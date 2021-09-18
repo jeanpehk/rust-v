@@ -21,50 +21,53 @@ enum Opcode {
     Auipc = 0b0010111,
     Jal = 0b1101111,
     Jalr = 0b1100111,
-    Branch = 0b1100011
+    Branch = 0b1100011,
+    Load = 0b0000011,
+    Store = 0b0100011
 }
 
 enum Funct3 {
-    Addi = 0b000,
-    Slti = 0b010,
-    Sltiu = 0b011,
-    Andi = 0b111,
-    Ori = 0b110,
-    Xori = 0b100,
-    Slli = 0b001,
-    Srxi = 0b101, // SRLI or SRAI, set in bit 30
+    Zero = 0b000,
+    One = 0b001,
+    Two = 0b010,
+    Three = 0b011,
+    Four = 0b100,
+    Five = 0b101,
+    Six = 0b110,
+    Seven = 0b111,
 }
 
 impl Funct3 {
-    const ADDI: Funct3 = Funct3::Addi;
-    const SLTI: Funct3 = Funct3::Slti;
-    const SLTIU: Funct3 = Funct3::Sltiu;
-    const ANDI: Funct3 = Funct3::Andi;
-    const ORI: Funct3 = Funct3::Ori;
-    const XORI: Funct3 = Funct3::Xori;
-    const SLLI: Funct3 = Funct3::Slli;
-    const SRLI: Funct3 = Funct3::Srxi;
-    const SRAI: Funct3 = Funct3::Srxi;
-    const ADD: Funct3 = Funct3::Addi;
-    const SUB: Funct3 = Funct3::Addi;
-    const SLT: Funct3 = Funct3::Slti;
-    const SLTU: Funct3 = Funct3::Sltiu;
-    const XOR: Funct3 = Funct3::Xori;
-    const SLL: Funct3 = Funct3::Slli;
-    const SRL: Funct3 = Funct3::Srxi;
-    const SRA: Funct3 = Funct3::Srxi;
-    const OR: Funct3 = Funct3::Ori;
-    const AND: Funct3 = Funct3::Andi;
+    // Integer Register Immediate
+    const ADDI: Funct3 = Funct3::Zero;
+    const SLTI: Funct3 = Funct3::Two;
+    const SLTIU: Funct3 = Funct3::Three;
+    const ANDI: Funct3 = Funct3::Seven;
+    const ORI: Funct3 = Funct3::Six;
+    const XORI: Funct3 = Funct3::Four;
+    const SLLI: Funct3 = Funct3::One;
+    const SRXI: Funct3 = Funct3::Five;
 
-    // Branch instructions
-    const BEQ: Funct3 = Funct3::Addi;
-    const BNE: Funct3 = Funct3::Slli;
-    const BLT: Funct3 = Funct3::Xori;
-    const BLTU: Funct3 = Funct3::Ori;
-    const BGE: Funct3 = Funct3::Srxi;
-    const BGEU: Funct3 = Funct3::Andi;
+    // Integer Register Register
+    const ADD: Funct3 = Funct3::Zero;
+    const SLT: Funct3 = Funct3::Two;
+    const SLTU: Funct3 = Funct3::Three;
+    const AND: Funct3 = Funct3::Seven;
+    const OR: Funct3 = Funct3::Six;
+    const XOR: Funct3 = Funct3::Four;
+    const SLL: Funct3 = Funct3::One;
+    const SRL: Funct3 = Funct3::Five;
+    const _SUB: Funct3 = Funct3::Zero;
+    const SRA: Funct3 = Funct3::Five;
+
+    // Branch
+    const BEQ: Funct3 = Funct3::Zero;
+    const BNE: Funct3 = Funct3::One;
+    const BLT: Funct3 = Funct3::Four;
+    const BLTU: Funct3 = Funct3::Six;
+    const BGE: Funct3 = Funct3::Five;
+    const BGEU: Funct3 = Funct3::Seven;
 }
-
 
 /*
  * dump 10 bytes starting from index
@@ -112,17 +115,17 @@ fn eval(ins: u32, mut core: Core) -> Core {
         let i_imm = take_range(31,20,ins);
         let signed_i_imm = sign_extend(i_imm,12);
 
-        if funct3 == Funct3::Addi as u32 {
+        if funct3 == Funct3::ADDI as u32 {
             core.regs[rd as usize] = core.regs[rs1 as usize] + signed_i_imm;
         }
-        else if funct3 == Funct3::Slti as u32 {
+        else if funct3 == Funct3::SLTI as u32 {
             core.regs[rd as usize] = if core.regs[rs1 as usize] < signed_i_imm {
                 1
             } else {
                 0
             };
         }
-        else if funct3 == Funct3::Sltiu as u32 {
+        else if funct3 == Funct3::SLTIU as u32 {
             core.regs[rd as usize] =
                 if (core.regs[rs1 as usize] as u32) < signed_i_imm as u32 {
                     1
@@ -130,20 +133,20 @@ fn eval(ins: u32, mut core: Core) -> Core {
                     0
                 };
         }
-        else if funct3 == Funct3::Andi as u32 {
+        else if funct3 == Funct3::ANDI as u32 {
             core.regs[rd as usize] = core.regs[rs1 as usize] & signed_i_imm;
         }
-        else if funct3 == Funct3::Ori as u32 {
+        else if funct3 == Funct3::ORI as u32 {
             core.regs[rd as usize] = core.regs[rs1 as usize] | signed_i_imm;
         }
-        else if funct3 == Funct3::Xori as u32 {
+        else if funct3 == Funct3::XORI as u32 {
             core.regs[rd as usize] = core.regs[rs1 as usize] ^ signed_i_imm;
         }
-        else if funct3 == Funct3::Slli as u32 {
+        else if funct3 == Funct3::SLLI as u32 {
             let shamt = i_imm & 0b11111;
             core.regs[rd as usize] = core.regs[rs1 as usize] << shamt;
         }
-        else if funct3 == Funct3::Srxi as u32 {
+        else if funct3 == Funct3::SRXI as u32 {
             let arithmetic = take_range(30,30, ins);
             let shamt = i_imm & 0b11111;
             if arithmetic == 1 {
@@ -258,40 +261,31 @@ fn eval(ins: u32, mut core: Core) -> Core {
         let imm11 = take_range(7,7,ins);
         let imm = sign_extend((imm12<<12)|(imm11<<11)|(imm10_5<<5)|(imm4_1<<1),13);
         let target_addr = core.regs[32] + imm;
-        println!("imm: {}", imm);
-        println!("rs1: {}", rs1);
-        println!("rs2: {}", rs2);
 
         if funct3 == Funct3::BEQ as u32 {
-            println!("beq");
             if core.regs[rs1] == core.regs[rs2] {
                 core.regs[32] = target_addr;
             }
         }
         else if funct3 == Funct3::BNE as u32 {
-            println!("bne");
             if core.regs[rs1] != core.regs[rs2] {
                 core.regs[32] = target_addr;
             }
         }
         else if funct3 == Funct3::BLT as u32 {
-            println!("blt");
             if core.regs[rs1] < core.regs[rs2] {
                 core.regs[32] = target_addr;
             }
-
         }
         else if funct3 == Funct3::BLTU as u32 {
             if (core.regs[rs1] as u32) < (core.regs[rs2] as u32) {
                 core.regs[32] = target_addr;
             }
-
         }
         else if funct3 == Funct3::BGE as u32 {
             if core.regs[rs1] > core.regs[rs2] {
                 core.regs[32] = target_addr;
             }
-
         }
         else if funct3 == Funct3::BGEU as u32 {
             if (core.regs[rs1] as u32) > (core.regs[rs2] as u32) {
@@ -307,7 +301,7 @@ fn eval(ins: u32, mut core: Core) -> Core {
 
 fn main() {
     let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
-    // 0020d663            bgeu ra,sp,12
+    // 0x0020d663 := bgeu ra,sp,12
     let test = 0x0020f663;
     core.regs[1] = -1;
     core.regs[2] = 2;
