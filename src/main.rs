@@ -79,6 +79,100 @@ impl Funct3 {
     const SW: Funct3 = Funct3::Two;
 }
 
+struct IType {
+    imm: u32,
+    rs1: usize,
+    rd: usize,
+    funct3: u32
+}
+
+struct UType {
+    rd: usize,
+    imm: u32
+}
+
+struct RType {
+    funct7: u32,
+    rs2: usize,
+    rs1: usize,
+    funct3: u32,
+    rd: usize
+}
+
+struct JType {
+    imm: u32,
+    rd: usize
+}
+
+struct BType {
+    imm: u32,
+    rs2: usize,
+    rs1: usize,
+    funct3: u32
+}
+
+struct SType {
+    imm: u32,
+    rs2: usize,
+    rs1: usize,
+    funct3: u32
+}
+
+fn get_i_type(ins: u32) -> IType {
+    let imm = take_range(31,20,ins);
+    let rs1 = take_range(19,15,ins) as usize;
+    let rd = take_range(11,7,ins) as usize;
+    let funct3 = take_range(14,12,ins);
+    return IType { imm, rs1, rd, funct3 };
+}
+
+fn get_u_type(ins: u32) -> UType {
+    let rd = take_range(11,7,ins) as usize;
+    let imm = take_range(31,12,ins);
+    return UType { rd, imm };
+}
+
+fn get_r_type(ins: u32) -> RType {
+    let funct7 = take_range(31,25,ins);
+    let rs2 = take_range(24,20,ins) as usize;
+    let rs1 = take_range(19,15,ins) as usize;
+    let funct3 = take_range(14,12,ins);
+    let rd = take_range(11,7,ins) as usize;
+    return RType { funct7, rs2, rs1, funct3, rd };
+}
+
+fn get_j_type(ins: u32) -> JType {
+    let imm20 = take_range(31,31,ins);
+    let imm10_1 = take_range(30,21,ins);
+    let imm11 = take_range(20,20,ins);
+    let imm19_12 = take_range(19,12,ins);
+    let imm = (imm20<<20) | (imm19_12<<12) | (imm11<<11) | (imm10_1<<1);
+    let rd = take_range(11,7,ins) as usize;
+    return JType { imm, rd };
+}
+
+fn get_b_type(ins: u32) -> BType {
+    let imm12 = take_range(31,31,ins);
+    let imm10_5 = take_range(30,25,ins);
+    let rs2 = take_range(24,20,ins) as usize;
+    let rs1 = take_range(19,15,ins) as usize;
+    let funct3 = take_range(14,12,ins);
+    let imm4_1 = take_range(11,8,ins);
+    let imm11 = take_range(7,7,ins);
+    let imm = (imm12<<12)|(imm11<<11)|(imm10_5<<5)|(imm4_1<<1);
+    return BType { imm, rs2, rs1, funct3 };
+}
+
+fn get_s_type(ins: u32) -> SType {
+    let imm11_5 = take_range(31,25,ins);
+    let rs2 = take_range(24,20,ins) as usize;
+    let rs1 = take_range(19,15,ins) as usize;
+    let funct3 = take_range(14,12,ins);
+    let imm4_0 = take_range(11,7,ins);
+    let imm = (imm11_5<<5) | imm4_0;
+    return SType { imm, rs2, rs1, funct3 };
+}
+
 /*
  * dump 10 bytes starting from index
  */
@@ -122,42 +216,35 @@ fn eval(ins: u32, mut core: Core) -> Core {
     let opcode = take_range(6, 0, ins);
 
     if opcode == Opcode::OpImm as u32 {
-        let funct3 = take_range(14,12,ins);
-        let rd = take_range(11,7,ins) as usize;
-        let rs1 = take_range(19,15,ins) as usize;
-        let i_imm = take_range(31,20,ins);
-        let signed_i_imm = sign_extend(i_imm,12);
+        let IType { imm, rs1, rd, funct3 } = get_i_type(ins);
+        let signed_imm = sign_extend(imm, 12);
 
         if funct3 == Funct3::ADDI as u32 {
-            core.regs[rd] = core.regs[rs1] + signed_i_imm;
+            core.regs[rd] = core.regs[rs1] + signed_imm;
         }
         else if funct3 == Funct3::SLTI as u32 {
-            core.regs[rd] = if core.regs[rs1] < signed_i_imm {
-                1
-            } else {
-                0
-            };
+            core.regs[rd] = if core.regs[rs1] < signed_imm {1} else {0};
         }
         else if funct3 == Funct3::SLTIU as u32 {
             core.regs[rd] =
-                if (core.regs[rs1] as u32) < signed_i_imm as u32 {1} else {0};
+                if (core.regs[rs1] as u32) < signed_imm as u32 {1} else {0};
         }
         else if funct3 == Funct3::ANDI as u32 {
-            core.regs[rd] = core.regs[rs1] & signed_i_imm;
+            core.regs[rd] = core.regs[rs1] & signed_imm;
         }
         else if funct3 == Funct3::ORI as u32 {
-            core.regs[rd] = core.regs[rs1] | signed_i_imm;
+            core.regs[rd] = core.regs[rs1] | signed_imm;
         }
         else if funct3 == Funct3::XORI as u32 {
-            core.regs[rd] = core.regs[rs1] ^ signed_i_imm;
+            core.regs[rd] = core.regs[rs1] ^ signed_imm;
         }
         else if funct3 == Funct3::SLLI as u32 {
-            let shamt = i_imm & 0b11111;
+            let shamt = imm & 0b11111;
             core.regs[rd] = core.regs[rs1] << shamt;
         }
         else if funct3 == Funct3::SRXI as u32 {
             let arithmetic = take_range(30,30, ins);
-            let shamt = i_imm & 0b11111;
+            let shamt = imm & 0b11111;
             // SRAI
             if arithmetic == 1 {
                 core.regs[rd] = core.regs[rs1] >> shamt;
@@ -173,11 +260,7 @@ fn eval(ins: u32, mut core: Core) -> Core {
         }
     }
     else if opcode == Opcode::Op as u32 {
-        let funct7 = take_range(31,25,ins);
-        let rs2 = take_range(24,20,ins) as usize;
-        let rs1 = take_range(19,15,ins) as usize;
-        let funct3 = take_range(14,12,ins);
-        let rd = take_range(11,7,ins) as usize;
+        let RType { funct7, rs2, rs1, funct3, rd } = get_r_type(ins);
 
         // add or sub
         if funct3 == Funct3::ADD as u32 {
@@ -226,45 +309,32 @@ fn eval(ins: u32, mut core: Core) -> Core {
         }
     }
     else if opcode == Opcode::Lui as u32 {
-        let rd = take_range(11,7,ins) as usize;
-        let u_imm = take_range(31,12,ins);
-        core.regs[rd] = (u_imm << 12) as i32;
+        let UType { rd, imm } = get_u_type(ins);
+        core.regs[rd] = (imm << 12) as i32;
     }
     else if opcode == Opcode::Auipc as u32 {
-        let rd = take_range(11,7,ins) as usize;
-        let u_imm = take_range(31,12,ins);
-        let offset = (u_imm << 12) as i32;
-        core.regs[rd] = core.regs[32] + offset;
+        let UType { rd, imm } = get_u_type(ins);
+        core.regs[rd] = core.regs[32] + ((imm<<12) as i32);
     }
     else if opcode == Opcode::Jal as u32 {
-        let imm20 = take_range(31,31,ins);
-        let imm10_1 = take_range(30,21,ins);
-        let imm11 = take_range(20,20,ins);
-        let imm19_12 = take_range(19,12,ins);
-        let rd = take_range(11,7,ins) as usize;
-        let imm = (imm20<<20) | (imm19_12<<12) | (imm11<<11) | (imm10_1<<1);
+        let JType { imm, rd } = get_j_type(ins);
         let signed = sign_extend(imm, 21);
         core.regs[rd] = core.regs[32]+4;
         core.regs[32] = core.regs[32]+signed;
     }
     else if opcode == Opcode::Jalr as u32 {
-        let imm = sign_extend(take_range(31,20,ins),12);
-        let rs1 = take_range(19,15,ins) as usize;
-        let _funct3 = take_range(14,12,ins); // when do we need this?
-        let rd = take_range(11,7,ins) as usize;
+        let IType { imm, rs1, rd, funct3: _ } = get_i_type(ins);
+
+        let imm = sign_extend(imm, 12);
         let val = imm+core.regs[rs1];
+
         core.regs[rd] = core.regs[32]+4;
         core.regs[32] = if val%2 == 0 {val} else {val-1};
     }
     else if opcode == Opcode::Branch as u32 {
-        let imm12 = take_range(31,31,ins);
-        let imm10_5 = take_range(30,25,ins);
-        let rs2 = take_range(24,20,ins) as usize;
-        let rs1 = take_range(19,15,ins) as usize;
-        let funct3 = take_range(14,12,ins);
-        let imm4_1 = take_range(11,8,ins);
-        let imm11 = take_range(7,7,ins);
-        let imm = sign_extend((imm12<<12)|(imm11<<11)|(imm10_5<<5)|(imm4_1<<1),13);
+        let BType { imm, rs2, rs1, funct3 } = get_b_type(ins);
+
+        let imm = sign_extend(imm,13);
         let target_addr = (((core.regs[32] + imm) as usize)%MEMSIZE) as i32;
 
         if funct3 == Funct3::BEQ as u32 {
@@ -302,10 +372,8 @@ fn eval(ins: u32, mut core: Core) -> Core {
         }
     }
     else if opcode == Opcode::Load as u32 {
-        let imm = take_range(31,20,ins);
-        let rs1 = take_range(19,15,ins) as usize;
-        let width = take_range(14,12,ins);
-        let rd = take_range(11,7,ins) as usize;
+        let IType { imm, rs1, rd, funct3: width } = get_i_type(ins);
+
         let target_addr = ((sign_extend(imm,12)+core.regs[rs1]) as usize)%MEMSIZE;
         if width == Funct3::LB as u32 {
             core.regs[rd] = core.memory[target_addr] as i32;
@@ -327,12 +395,7 @@ fn eval(ins: u32, mut core: Core) -> Core {
         }
     }
     else if opcode == Opcode::Store as u32 {
-        let imm11_5 = take_range(31,25,ins);
-        let rs2 = take_range(24,20,ins) as usize;
-        let rs1 = take_range(19,15,ins) as usize;
-        let width = take_range(14,12,ins);
-        let imm4_0 = take_range(11,7,ins);
-        let imm = (imm11_5<<5) | imm4_0;
+        let SType { imm, rs2, rs1, funct3: width } = get_s_type(ins);
         let target_addr = ((sign_extend(imm,12)+core.regs[rs1]) as usize)%MEMSIZE;
         if width == Funct3::SB as u32 {
             core.memory[target_addr] = core.regs[rs2] as u8;
@@ -359,12 +422,7 @@ fn eval(ins: u32, mut core: Core) -> Core {
 
 fn main() {
     let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
-    // 00008703            lb  a4,0(ra)
-    // 00209703            lh  a4,2(ra)
-    // 0080a703            lw  a4,8(ra) // 0000a703 lw a4,0(ra)
-    // 00208023            sb  sp,0(ra)
-    // 00209223            sh  sp,4(ra)
-    // 0020a423            sw  sp,8(ra)
+    // 0000a703 lw a4,0(ra)
     let test = 0x0000a703;
     core.regs[1] = 4;
     core.regs[2] = 1;
