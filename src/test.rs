@@ -419,4 +419,69 @@ mod tests {
         core = eval(0x0020f663, core);
         assert_eq!(12, core.regs[32]);
     }
- }
+
+    #[test]
+    fn lb_a4_0_ra() {
+        let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+        core.regs[1] = 4;
+        core.regs[14] = 0;
+        core.memory[4] = 255;
+        core = eval(0x00008703, core);
+        assert_eq!(255, core.regs[14]);
+    }
+
+    #[test]
+    fn lh_a4_2_ra() {
+        let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+        core.regs[1] = 2;
+        core.regs[14] = 0;
+        core.memory[4] = 0b00001110;
+        core.memory[5] = 0b1; // mem[4-5] => 0b100001110 => 270
+        core = eval(0x00209703, core);
+        assert_eq!(270, core.regs[14]);
+    }
+
+    #[test]
+    fn lw_a4_8_ra() {
+        let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+        core.regs[1] = 0;
+        core.regs[14] = -1;
+        core.memory[8] = 0b1;
+        core.memory[9] = 0b1;
+        core.memory[10] = 0b1;
+        core.memory[11] = 0b1; // => mem[8-11] = 0x1010101
+        core = eval(0x0080a703, core);
+        assert_eq!(0x1010101, core.regs[14]);
+    }
+
+    #[test]
+    fn sb_sp_0_ra() {
+        let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+        core.regs[1] = 4;
+        core.regs[2] = 1;
+        core = eval(0x00208023, core);
+        assert_eq!(1, core.memory[4]);
+    }
+
+    #[test]
+    fn sh_sp_4_ra() {
+        let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+        core.regs[1] = 0;
+        core.regs[2] = 1048575; // 2**20 -1
+        core = eval(0x00209223, core);
+        assert_eq!(0xff, core.memory[4]);
+        assert_eq!(0xff, core.memory[5]);
+    }
+
+    #[test]
+    fn sw_sp_8_ra() {
+        let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+        core.regs[1] = 0;
+        core.regs[2] = 2490785; // = 00100110 00000001 10100001
+        core = eval(0x0020a423, core);
+        assert_eq!(0b10100001, core.memory[8]);
+        assert_eq!(0b1, core.memory[9]);
+        assert_eq!(0b100110, core.memory[10]);
+        assert_eq!(0b0, core.memory[11]);
+    }
+}
