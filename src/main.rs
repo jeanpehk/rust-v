@@ -56,9 +56,9 @@ impl Funct3 {
     const OR: Funct3 = Funct3::Six;
     const XOR: Funct3 = Funct3::Four;
     const SLL: Funct3 = Funct3::One;
-    const SRL: Funct3 = Funct3::Five;
+    // SRL or SRA
+    const SRX: Funct3 = Funct3::Five;
     const _SUB: Funct3 = Funct3::Zero;
-    const SRA: Funct3 = Funct3::Five;
 
     // Branch
     const BEQ: Funct3 = Funct3::Zero;
@@ -123,54 +123,51 @@ fn eval(ins: u32, mut core: Core) -> Core {
 
     if opcode == Opcode::OpImm as u32 {
         let funct3 = take_range(14,12,ins);
-        let rd = take_range(11,7,ins);
-        let rs1 = take_range(19,15,ins);
+        let rd = take_range(11,7,ins) as usize;
+        let rs1 = take_range(19,15,ins) as usize;
         let i_imm = take_range(31,20,ins);
         let signed_i_imm = sign_extend(i_imm,12);
 
         if funct3 == Funct3::ADDI as u32 {
-            core.regs[rd as usize] = core.regs[rs1 as usize] + signed_i_imm;
+            core.regs[rd] = core.regs[rs1] + signed_i_imm;
         }
         else if funct3 == Funct3::SLTI as u32 {
-            core.regs[rd as usize] = if core.regs[rs1 as usize] < signed_i_imm {
+            core.regs[rd] = if core.regs[rs1] < signed_i_imm {
                 1
             } else {
                 0
             };
         }
         else if funct3 == Funct3::SLTIU as u32 {
-            core.regs[rd as usize] =
-                if (core.regs[rs1 as usize] as u32) < signed_i_imm as u32 {
-                    1
-                } else {
-                    0
-                };
+            core.regs[rd] =
+                if (core.regs[rs1] as u32) < signed_i_imm as u32 {1} else {0};
         }
         else if funct3 == Funct3::ANDI as u32 {
-            core.regs[rd as usize] = core.regs[rs1 as usize] & signed_i_imm;
+            core.regs[rd] = core.regs[rs1] & signed_i_imm;
         }
         else if funct3 == Funct3::ORI as u32 {
-            core.regs[rd as usize] = core.regs[rs1 as usize] | signed_i_imm;
+            core.regs[rd] = core.regs[rs1] | signed_i_imm;
         }
         else if funct3 == Funct3::XORI as u32 {
-            core.regs[rd as usize] = core.regs[rs1 as usize] ^ signed_i_imm;
+            core.regs[rd] = core.regs[rs1] ^ signed_i_imm;
         }
         else if funct3 == Funct3::SLLI as u32 {
             let shamt = i_imm & 0b11111;
-            core.regs[rd as usize] = core.regs[rs1 as usize] << shamt;
+            core.regs[rd] = core.regs[rs1] << shamt;
         }
         else if funct3 == Funct3::SRXI as u32 {
             let arithmetic = take_range(30,30, ins);
             let shamt = i_imm & 0b11111;
+            // SRAI
             if arithmetic == 1 {
-                core.regs[rd as usize] = core.regs[rs1 as usize] >> shamt;
+                core.regs[rd] = core.regs[rs1] >> shamt;
             }
+            // SRLI
             else {
-                let ans = core.regs[rs1 as usize] as u32 >> shamt;
-                core.regs[rd as usize] = ans as i32;
+                let ans = core.regs[rs1] as u32 >> shamt;
+                core.regs[rd] = ans as i32;
             }
         }
-
         else {
             println!("Unknown funct3 in op_imm: {}", funct3);
         }
@@ -194,20 +191,11 @@ fn eval(ins: u32, mut core: Core) -> Core {
             }
         }
         else if funct3 == Funct3::SLT as u32 {
-            core.regs[rd] = if core.regs[rs1] < core.regs[rs2] {
-                1
-            }
-            else {
-                0
-            };
+            core.regs[rd] = if core.regs[rs1] < core.regs[rs2] {1} else {0};
         }
         else if funct3 == Funct3::SLTU as u32 {
-            core.regs[rd] = if (core.regs[rs1] as u32) < (core.regs[rs2] as u32) {
-                1
-            }
-            else {
-                0
-            };
+            let (lhs, rhs) = (core.regs[rs1] as u32, core.regs[rs2] as u32);
+            core.regs[rd] = if lhs < rhs {1} else {0};
         }
         else if funct3 == Funct3::XOR as u32 {
             core.regs[rd] = core.regs[rs1] ^ core.regs[rs2];
@@ -216,15 +204,16 @@ fn eval(ins: u32, mut core: Core) -> Core {
             let shamt = core.regs[rs2] & 0b11111;
             core.regs[rd] = core.regs[rs1] << shamt;
         }
-        // srl or sra
-        else if funct3 == Funct3::SRL as u32 {
+        else if funct3 == Funct3::SRX as u32 {
             let shamt = core.regs[rs2] & 0b11111;
-            if funct7 == 0 {
-                core.regs[rd] = ((core.regs[rs1] as u32) >> shamt) as i32;
+            // SRL
+            core.regs[rd] = if funct7 == 0 {
+                (core.regs[rs1] as u32 >> shamt) as i32
             }
+            // SRA
             else {
-                core.regs[rd] = core.regs[rs1] >> shamt;
-            }
+                core.regs[rs1] >> shamt
+            };
         }
         else if funct3 == Funct3::OR as u32 {
             core.regs[rd] = core.regs[rs1] | core.regs[rs2];
@@ -232,17 +221,20 @@ fn eval(ins: u32, mut core: Core) -> Core {
         else if funct3 == Funct3::AND as u32 {
             core.regs[rd] = core.regs[rs1] & core.regs[rs2];
         }
+        else {
+            println!("Unknown Funct3 in Opcode Op: {}", funct3);
+        }
     }
     else if opcode == Opcode::Lui as u32 {
-        let rd = take_range(11,7,ins);
+        let rd = take_range(11,7,ins) as usize;
         let u_imm = take_range(31,12,ins);
-        core.regs[rd as usize] = (u_imm << 12) as i32;
+        core.regs[rd] = (u_imm << 12) as i32;
     }
     else if opcode == Opcode::Auipc as u32 {
-        let rd = take_range(11,7,ins);
+        let rd = take_range(11,7,ins) as usize;
         let u_imm = take_range(31,12,ins);
         let offset = (u_imm << 12) as i32;
-        core.regs[rd as usize] = core.regs[32] + offset;
+        core.regs[rd] = core.regs[32] + offset;
     }
     else if opcode == Opcode::Jal as u32 {
         let imm20 = take_range(31,31,ins);
@@ -305,6 +297,9 @@ fn eval(ins: u32, mut core: Core) -> Core {
                 core.regs[32] = target_addr;
             }
         }
+        else {
+            println!("Unknown Funct3 in Opcode Branch: {}", funct3);
+        }
     }
     else if opcode == Opcode::Load as u32 {
         let imm = take_range(31,20,ins);
@@ -312,28 +307,23 @@ fn eval(ins: u32, mut core: Core) -> Core {
         let width = take_range(14,12,ins);
         let rd = take_range(11,7,ins) as usize;
         let target_addr = ((sign_extend(imm,12)+core.regs[rs1]) as usize)%MEMSIZE;
-        println!("imm: {}", imm);
-        println!("rs1: {}", rs1);
-        println!("rd: {}", rd);
-        println!("width: {}", width);
-        println!("target_addr: {}", target_addr);
         if width == Funct3::LB as u32 {
-            println!("lb");
             core.regs[rd] = core.memory[target_addr] as i32;
         }
         else if width == Funct3::LH as u32 {
-            println!("lh");
             let b1 = core.memory[target_addr] as u16;
             let b2 = core.memory[target_addr+1] as u16;
             core.regs[rd] = ((b2<<8) | b1) as i32;
         }
         else if width == Funct3::LW as u32 {
-            println!("lw");
             let b1 = core.memory[target_addr] as u32;
             let b2 = core.memory[target_addr+1] as u32;
             let b3 = core.memory[target_addr+2] as u32;
             let b4 = core.memory[target_addr+3] as u32;
             core.regs[rd] = ((b4<<24) | (b3<<16) | (b2<<8) | b1) as i32;
+        }
+        else {
+            println!("Unknown width in Opcode Load: {}", width);
         }
     }
     else if opcode == Opcode::Store as u32 {
@@ -345,20 +335,20 @@ fn eval(ins: u32, mut core: Core) -> Core {
         let imm = (imm11_5<<5) | imm4_0;
         let target_addr = ((sign_extend(imm,12)+core.regs[rs1]) as usize)%MEMSIZE;
         if width == Funct3::SB as u32 {
-            println!("sb");
             core.memory[target_addr] = core.regs[rs2] as u8;
         }
         else if width == Funct3::SH as u32 {
-            println!("sh");
             core.memory[target_addr] = core.regs[rs2] as u8;
             core.memory[target_addr+1] = (core.regs[rs2]>>8) as u8;
         }
         else if width == Funct3::SW as u32 {
-            println!("sw");
             core.memory[target_addr] = core.regs[rs2] as u8;
             core.memory[target_addr+1] = (core.regs[rs2]>>8) as u8;
             core.memory[target_addr+2] = (core.regs[rs2]>>16) as u8;
             core.memory[target_addr+3] = (core.regs[rs2]>>24) as u8;
+        }
+        else {
+            println!("Unknown width in Opcode Store: {}", width);
         }
     }
     else {
