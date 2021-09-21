@@ -23,7 +23,8 @@ enum Opcode {
     Jalr = 0b1100111,
     Branch = 0b1100011,
     Load = 0b0000011,
-    Store = 0b0100011
+    Store = 0b0100011,
+    MiscMem = 0b0001111
 }
 
 enum Funct3 {
@@ -77,6 +78,8 @@ impl Funct3 {
     const SB: Funct3 = Funct3::Zero;
     const SH: Funct3 = Funct3::One;
     const SW: Funct3 = Funct3::Two;
+
+    const FENCE: Funct3 = Funct3::Zero;
 }
 
 struct IType {
@@ -413,6 +416,18 @@ fn eval(ins: u32, mut core: Core) -> Core {
         else {
             println!("Unknown width in Opcode Store: {}", width);
         }
+    }
+    else if opcode == Opcode::MiscMem as u32 {
+        let funct3 = take_range(14,12,ins);
+        if funct3 == Funct3::FENCE as u32 {
+            /*
+             * We do single core no cache so nothing to see here.
+             */
+        }
+        else {
+            println!("Unknown funct3 in Opcode MiscMem: {} ", funct3);
+        }
+
     }
     else {
         println!("Unknown opcode: {}", opcode);
