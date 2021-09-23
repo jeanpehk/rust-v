@@ -379,9 +379,17 @@ fn eval(ins: u32, mut core: Core) -> Core {
 
         let target_addr = ((sign_extend(imm,12)+core.regs[rs1]) as usize)%MEMSIZE;
         if width == Funct3::LB as u32 {
+            core.regs[rd] = (core.memory[target_addr] as i8) as i32;
+        }
+        if width == Funct3::LBU as u32 {
             core.regs[rd] = core.memory[target_addr] as i32;
         }
         else if width == Funct3::LH as u32 {
+            let b1 = core.memory[target_addr] as u16;
+            let b2 = core.memory[target_addr+1] as u16;
+            core.regs[rd] = (((b2<<8) | b1) as i16) as i32;
+        }
+        else if width == Funct3::LHU as u32 {
             let b1 = core.memory[target_addr] as u16;
             let b2 = core.memory[target_addr+1] as u16;
             core.regs[rd] = ((b2<<8) | b1) as i32;
