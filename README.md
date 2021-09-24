@@ -1,7 +1,11 @@
 # rust-v
 
-RISC-V Core in rust.
+Toy RISC-V Core in Rust.
 
-Plan is to implement RV32I Base Integer Instruction Set.
+## Features
+
+- RV32I
+  - FENCE is not implemented since this is only single core with no cache.
+  - No ECALL / EBREAK since no implementation for privileged spec.
 
 https://riscv.org/technical/specifications/
