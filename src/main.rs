@@ -16,7 +16,7 @@ struct Core {
     regs: [i32;33]
 }
 
-fn run(mut core: Core) -> Core {
+fn run(core: &mut Core) {
     let mut ins_cnt = 0;
     loop {
         let pc = core.regs[32] as usize;
@@ -25,20 +25,18 @@ fn run(mut core: Core) -> Core {
             | ((core.memory[pc+1] as u32) << 8)
             | core.memory[pc] as u32;
         if ins == 0 { break; };
-        core = eval(ins, core);
+        eval(ins, core);
         ins_cnt += 1;
     }
     println!("Ran {} instructions.", ins_cnt);
-    return core;
 }
 
-fn store_mem_32(mut core: Core, addr: u32, value: u32) -> Core {
+fn store_mem_32(mut core: &mut Core, addr: u32, value: u32) {
     let addr = addr as usize;
     core.memory[addr] = (value & 0xff) as u8;
     core.memory[addr+1] = ((value>>8) & 0xff) as u8;
     core.memory[addr+2] = ((value>>16) & 0xff) as u8;
     core.memory[addr+3] = ((value>>24) & 0xff) as u8;
-    return core;
 }
 
 struct IType {
@@ -138,7 +136,7 @@ fn get_s_type(ins: u32) -> SType {
 /*
  * dump 10 bytes starting from index
  */
-fn dump_mem(core: Core, addr: usize) -> Core {
+fn dump_mem(core: &Core, addr: usize) {
     let range = 10;
     let mut i = 0;
     println!("{:11} {:5} {:3}", "Memory", "Dec",  "Hex");
@@ -147,17 +145,15 @@ fn dump_mem(core: Core, addr: usize) -> Core {
         println!("{:#010x}: {:<#5} {:<#02x}", addr+i, core.memory[addr+i], core.memory[addr+i]);
         i += 1;
     }
-    return core;
 }
 
-fn dump_regs(core: Core) -> Core {
+fn dump_regs(core: &Core) {
     let regs = core.regs;
     println!("{:6} {:<10} {}", "Name", "Dec", "Hex");
     println!("{:6} {:<10} {}", "----", "---", "---");
     for i in 0..=32 {
         println!("{:6} {:<10} {:#010x}", REG_NAMES[i], regs[i], regs[i]);
     }
-    return core;
 }
 
 fn take_range(start: u32, end: u32, ins: u32) -> u32 {
@@ -174,7 +170,7 @@ fn sign_extend(ins: u32, bits: u32) -> i32 {
     };
 }
 
-fn eval(ins: u32, mut core: Core) -> Core {
+fn eval(ins: u32, core: &mut Core) {
     let opcode = take_range(6, 0, ins);
 
     match opcode {
@@ -280,7 +276,7 @@ fn eval(ins: u32, mut core: Core) -> Core {
             let signed = sign_extend(imm, 21);
             core.regs[rd] = core.regs[32]+4;
             core.regs[32] = core.regs[32]+signed;
-            return core;
+            return;
         },
         opcodes::JALR => {
             let IType { imm, rs1, rd, funct3: _ } = get_i_type(ins);
@@ -290,7 +286,7 @@ fn eval(ins: u32, mut core: Core) -> Core {
 
             core.regs[rd] = core.regs[32]+4;
             core.regs[32] = if val%2 == 0 {val} else {val-1};
-            return core;
+            return;
         },
         opcodes::BRANCH => {
             let BType { imm, rs2, rs1, funct3 } = get_b_type(ins);
@@ -300,37 +296,37 @@ fn eval(ins: u32, mut core: Core) -> Core {
                 funct3::BEQ => {
                     if core.regs[rs1] == core.regs[rs2] {
                         core.regs[32] = target_addr;
-                        return core;
+                        return;
                     }
                 },
                 funct3::BNE => {
                     if core.regs[rs1] != core.regs[rs2] {
                         core.regs[32] = target_addr;
-                        return core;
+                        return;
                     }
                 },
                 funct3::BLT => {
                     if core.regs[rs1] < core.regs[rs2] {
                         core.regs[32] = target_addr;
-                        return core;
+                        return;
                     }
                 },
                 funct3::BLTU => {
                     if (core.regs[rs1] as u32) < (core.regs[rs2] as u32) {
                         core.regs[32] = target_addr;
-                        return core;
+                        return;
                     }
                 },
                 funct3::BGE => {
                     if core.regs[rs1] > core.regs[rs2] {
                         core.regs[32] = target_addr;
-                        return core;
+                        return;
                     }
                 },
                 funct3::BGEU => {
                     if (core.regs[rs1] as u32) > (core.regs[rs2] as u32) {
                         core.regs[32] = target_addr;
-                        return core;
+                        return;
                     }
                 },
                 _ => {
@@ -410,26 +406,24 @@ fn eval(ins: u32, mut core: Core) -> Core {
         }
     }
     core.regs[32] = core.regs[32]+4;
-
-    return core;
 }
 
-fn load_test_program(mut core: Core) -> Core {
+fn load_test_program(core: &mut Core) {
     // Initial state
     core.regs[1] = 0x8; // ra
     core.regs[2] = 0x8; // sp
 
     // Instructions
-    core = store_mem_32(core, 0, 0x00708713); // addi a4 ra 7 0x00708713
-    core = store_mem_32(core, 4, 0x00208023); // sb sp 0 ra 0x00208023
-    return core;
+    store_mem_32(core, 0, 0x00708713); // addi a4 ra 7 0x00708713
+    store_mem_32(core, 4, 0x00208023); // sb sp 0 ra 0x00208023
 }
 
 fn main() {
     let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
-    core = load_test_program(core);
 
-    core = run(core);
-    core = dump_regs(core);
-    dump_mem(core, 0x0);
+    load_test_program(&mut core);
+    run(&mut core);
+
+    dump_regs(&core);
+    dump_mem(&core, 0x0);
 }
