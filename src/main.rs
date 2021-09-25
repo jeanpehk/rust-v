@@ -16,6 +16,31 @@ struct Core {
     regs: [i32;33]
 }
 
+fn run(mut core: Core) -> Core {
+    let mut ins_cnt = 0;
+    loop {
+        let pc = core.regs[32] as usize;
+        let ins = ((core.memory[pc+3] as u32) << 24)
+            | ((core.memory[pc+2] as u32) << 16)
+            | ((core.memory[pc+1] as u32) << 8)
+            | core.memory[pc] as u32;
+        if ins == 0 { break; };
+        core = eval(ins, core);
+        ins_cnt += 1;
+    }
+    println!("Ran {} instructions.", ins_cnt);
+    return core;
+}
+
+fn store_mem_32(mut core: Core, addr: u32, value: u32) -> Core {
+    let addr = addr as usize;
+    core.memory[addr] = (value & 0xff) as u8;
+    core.memory[addr+1] = ((value>>8) & 0xff) as u8;
+    core.memory[addr+2] = ((value>>16) & 0xff) as u8;
+    core.memory[addr+3] = ((value>>24) & 0xff) as u8;
+    return core;
+}
+
 struct IType {
     imm: u32,
     rs1: usize,
@@ -255,6 +280,7 @@ fn eval(ins: u32, mut core: Core) -> Core {
             let signed = sign_extend(imm, 21);
             core.regs[rd] = core.regs[32]+4;
             core.regs[32] = core.regs[32]+signed;
+            return core;
         },
         opcodes::JALR => {
             let IType { imm, rs1, rd, funct3: _ } = get_i_type(ins);
@@ -264,6 +290,7 @@ fn eval(ins: u32, mut core: Core) -> Core {
 
             core.regs[rd] = core.regs[32]+4;
             core.regs[32] = if val%2 == 0 {val} else {val-1};
+            return core;
         },
         opcodes::BRANCH => {
             let BType { imm, rs2, rs1, funct3 } = get_b_type(ins);
@@ -273,31 +300,37 @@ fn eval(ins: u32, mut core: Core) -> Core {
                 funct3::BEQ => {
                     if core.regs[rs1] == core.regs[rs2] {
                         core.regs[32] = target_addr;
+                        return core;
                     }
                 },
                 funct3::BNE => {
                     if core.regs[rs1] != core.regs[rs2] {
                         core.regs[32] = target_addr;
+                        return core;
                     }
                 },
                 funct3::BLT => {
                     if core.regs[rs1] < core.regs[rs2] {
                         core.regs[32] = target_addr;
+                        return core;
                     }
                 },
                 funct3::BLTU => {
                     if (core.regs[rs1] as u32) < (core.regs[rs2] as u32) {
                         core.regs[32] = target_addr;
+                        return core;
                     }
                 },
                 funct3::BGE => {
                     if core.regs[rs1] > core.regs[rs2] {
                         core.regs[32] = target_addr;
+                        return core;
                     }
                 },
                 funct3::BGEU => {
                     if (core.regs[rs1] as u32) > (core.regs[rs2] as u32) {
                         core.regs[32] = target_addr;
+                        return core;
                     }
                 },
                 _ => {
@@ -376,18 +409,27 @@ fn eval(ins: u32, mut core: Core) -> Core {
             println!("Unknown opcode: {}", opcode);
         }
     }
+    core.regs[32] = core.regs[32]+4;
+
+    return core;
+}
+
+fn load_test_program(mut core: Core) -> Core {
+    // Initial state
+    core.regs[1] = 0x8; // ra
+    core.regs[2] = 0x8; // sp
+
+    // Instructions
+    core = store_mem_32(core, 0, 0x00708713); // addi a4 ra 7 0x00708713
+    core = store_mem_32(core, 4, 0x00208023); // sb sp 0 ra 0x00208023
     return core;
 }
 
 fn main() {
     let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
-    // 0000a703 lw a4,0(ra)
-    let test = 0x0000a703;
-    core.regs[1] = 4;
-    core.regs[2] = 1;
-    core.memory[4] = 0x1;
-    core.memory[5] = 0x2;
-    core = eval(test, core);
+    core = load_test_program(core);
+
+    core = run(core);
     core = dump_regs(core);
-    dump_mem(core, 0);
+    dump_mem(core, 0x0);
 }

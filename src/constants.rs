@@ -1,4 +1,4 @@
-pub const MEMSIZE: usize = 1024;
+pub const MEMSIZE: usize = 4 * 1024;
 pub const REG_NAMES: [&str; 33] = [
     "zero",
     "ra",
