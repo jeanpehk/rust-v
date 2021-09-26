@@ -418,10 +418,9 @@ fn eval(ins: u32, core: &mut Core) {
 }
 
 fn load_test_program(core: &mut Core) {
-    // Instructions
-    core.memory[1] = 5;
-    store_mem_32(core, 0, addi(14,1,8));
-    store_mem_32(core, 4, add(15,14,0));
+    store_mem_32(core, 0, addi(1,0,4));
+    store_mem_32(core, 4, jalr(10,1,4));
+    store_mem_32(core, 8, addi(1,1,1));
 }
 
 fn main() {
