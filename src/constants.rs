@@ -61,7 +61,7 @@ pub mod funct3 {
     pub const SRXI: u32 = 0b101;
 
     // Integer Register Register
-    pub const ADD: u32 = 0b000;
+    pub const ADD_SUB: u32 = 0b000;
     pub const SLT: u32 = 0b010;
     pub const SLTU: u32 = 0b011;
     pub const AND: u32 = 0b111;
@@ -70,7 +70,6 @@ pub mod funct3 {
     pub const SLL: u32 = 0b001;
     // SRL or SRA
     pub const SRX: u32 = 0b101;
-    pub const _SUB: u32 = 0b000;
 
     // Branch
     pub const BEQ: u32 = 0b000;

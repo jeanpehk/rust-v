@@ -1,12 +1,21 @@
+/*
+ * TODO
+ * cleanup when done
+ */
 #![ allow( dead_code ) ]
+#![ allow( unused_imports ) ]
+#![ allow( unused_variables ) ]
+#![ allow( unused_mut ) ]
 
 mod test;
 mod constants;
+mod ins;
 
 use constants::MEMSIZE;
 use constants::REG_NAMES;
 use constants::funct3;
 use constants::opcodes;
+use ins::*;
 
 /*
  * Main structure for core state
@@ -133,6 +142,10 @@ fn get_s_type(ins: u32) -> SType {
     return SType { imm, rs2, rs1, funct3 };
 }
 
+pub fn take_range(start: u32, end: u32, ins: u32) -> u32 {
+    return (ins >> end) & ((1 << (start-end+1))-1);
+}
+
 /*
  * dump 10 bytes starting from index
  */
@@ -154,10 +167,6 @@ fn dump_regs(core: &Core) {
     for i in 0..=32 {
         println!("{:6} {:<10} {:#010x}", REG_NAMES[i], regs[i], regs[i]);
     }
-}
-
-fn take_range(start: u32, end: u32, ins: u32) -> u32 {
-    return (ins >> end) & ((1 << (start-end+1))-1);
 }
 
 fn sign_extend(ins: u32, bits: u32) -> i32 {
@@ -221,7 +230,7 @@ fn eval(ins: u32, core: &mut Core) {
         opcodes::OP => {
             let RType { funct7, rs2, rs1, funct3, rd } = get_r_type(ins);
             match funct3 {
-                funct3::ADD => {
+                funct3::ADD_SUB => {
                     if funct7 == 0 { // add
                         core.regs[rd] = core.regs[rs1] + core.regs[rs2];
                     }
@@ -409,13 +418,10 @@ fn eval(ins: u32, core: &mut Core) {
 }
 
 fn load_test_program(core: &mut Core) {
-    // Initial state
-    core.regs[1] = 0x8; // ra
-    core.regs[2] = 0x8; // sp
-
     // Instructions
-    store_mem_32(core, 0, 0x00708713); // addi a4 ra 7 0x00708713
-    store_mem_32(core, 4, 0x00208023); // sb sp 0 ra 0x00208023
+    core.memory[1] = 5;
+    store_mem_32(core, 0, addi(14,1,8));
+    store_mem_32(core, 4, add(15,14,0));
 }
 
 fn main() {
