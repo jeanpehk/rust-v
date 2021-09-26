@@ -111,6 +111,34 @@ pub fn jalr(rd: u32, rs1: u32, imm: i32) -> u32 {
 }
 
 /*
+ * Conditional Branches
+ */
+
+pub fn beq(rs1: u32, rs2: u32, imm: i32) -> u32 {
+    return b_type(imm as u32, rs2, rs1, funct3::BEQ);
+}
+
+pub fn bne(rs1: u32, rs2: u32, imm: i32) -> u32 {
+    return b_type(imm as u32, rs2, rs1, funct3::BNE);
+}
+
+pub fn blt(rs1: u32, rs2: u32, imm: i32) -> u32 {
+    return b_type(imm as u32, rs2, rs1, funct3::BLT);
+}
+
+pub fn bltu(rs1: u32, rs2: u32, imm: i32) -> u32 {
+    return b_type(imm as u32, rs2, rs1, funct3::BLTU);
+}
+
+pub fn bge(rs1: u32, rs2: u32, imm: i32) -> u32 {
+    return b_type(imm as u32, rs2, rs1, funct3::BGE);
+}
+
+pub fn bgeu(rs1: u32, rs2: u32, imm: i32) -> u32 {
+    return b_type(imm as u32, rs2, rs1, funct3::BGEU);
+}
+
+/*
  * Instruction types
  */
 
@@ -148,5 +176,20 @@ fn i_type(imm: u32, rs1: u32, funct3: u32, rd: u32, opcode: u32) -> u32 {
         | ((funct3 & 0x7) << 12)
         | ((rd & 0x1f) << 7)
         | (opcode & 0x7f);
+}
+
+fn b_type(imm: u32, rs2: u32, rs1: u32, funct3: u32) -> u32 {
+    let imm12 = (imm >> 12) & 0x1;
+    let imm10_5 = (imm >> 5) & 0x3f;
+    let imm4_1 = (imm >> 1) & 0xf;
+    let imm11 = (imm >> 11) & 0x1;
+    return (imm12 << 31)
+        | (imm10_5 << 25)
+        | ((rs2 & 0x1f) << 20)
+        | ((rs1 & 0x1f) << 15)
+        | ((funct3 & 0x7) << 12)
+        | (imm4_1 << 8)
+        | (imm11 << 7)
+        | opcodes::BRANCH;
 }
 

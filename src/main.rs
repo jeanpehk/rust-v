@@ -1,11 +1,4 @@
-/*
- * TODO
- * cleanup when done
- */
 #![ allow( dead_code ) ]
-#![ allow( unused_imports ) ]
-#![ allow( unused_variables ) ]
-#![ allow( unused_mut ) ]
 
 mod test;
 mod constants;
@@ -418,9 +411,8 @@ fn eval(ins: u32, core: &mut Core) {
 }
 
 fn load_test_program(core: &mut Core) {
-    store_mem_32(core, 0, addi(1,0,4));
-    store_mem_32(core, 4, jalr(10,1,4));
-    store_mem_32(core, 8, addi(1,1,1));
+    store_mem_32(core, 0, addi(1,1,4));
+    store_mem_32(core, 4, addi(2,2,-4));
 }
 
 fn main() {
