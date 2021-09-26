@@ -139,6 +139,46 @@ pub fn bgeu(rs1: u32, rs2: u32, imm: i32) -> u32 {
 }
 
 /*
+ * Load and Store
+ */
+
+pub fn lb(rd: u32, imm: i32, rs1: u32) -> u32 {
+    return i_type(imm as u32, rs1, funct3::LB, rd, opcodes::LOAD);
+}
+
+pub fn lbu(rd: u32, imm: i32, rs1: u32) -> u32 {
+    return i_type(imm as u32, rs1, funct3::LBU, rd, opcodes::LOAD);
+}
+
+pub fn lh(rd: u32, imm: i32, rs1: u32) -> u32 {
+    return i_type(imm as u32, rs1, funct3::LH, rd, opcodes::LOAD);
+}
+
+pub fn lhu(rd: u32, imm: i32, rs1: u32) -> u32 {
+    return i_type(imm as u32, rs1, funct3::LHU, rd, opcodes::LOAD);
+}
+
+pub fn lw(rd: u32, imm: i32, rs1: u32) -> u32 {
+    return i_type(imm as u32, rs1, funct3::LW, rd, opcodes::LOAD);
+}
+
+/*
+ * STORES: rs2 = read from, rs1 = base, imm = offset
+ */
+
+pub fn sb(rs2: u32, imm: i32, rs1: u32) -> u32 {
+    return s_type(imm as u32, rs2, rs1, funct3::SB);
+}
+
+pub fn sh(rs2: u32, imm: i32, rs1: u32) -> u32 {
+    return s_type(imm as u32, rs2, rs1, funct3::SH);
+}
+
+pub fn sw(rs2: u32, imm: i32, rs1: u32) -> u32 {
+    return s_type(imm as u32, rs2, rs1, funct3::SW);
+}
+
+/*
  * Instruction types
  */
 
@@ -193,3 +233,13 @@ fn b_type(imm: u32, rs2: u32, rs1: u32, funct3: u32) -> u32 {
         | opcodes::BRANCH;
 }
 
+fn s_type(imm: u32, rs2: u32, rs1: u32, funct3: u32) -> u32 {
+    let imm11_5 = (imm >> 5) & 0x7f;
+    let imm4_0 = imm & 0x1f;
+    return (imm11_5 << 25)
+        | (rs2 << 20)
+        | (rs1 << 15)
+        | (funct3 << 12)
+        | (imm4_0 << 7)
+        | opcodes::STORE;
+}

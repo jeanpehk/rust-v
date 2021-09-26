@@ -613,4 +613,14 @@ mod encoding_tests {
         // => 0b11111110000000000000111011100011 => 0xfe000ee3
         assert_eq!(beq(0,0,-4), 0xfe000ee3);
     }
+
+    #[test]
+    fn sb_sp_0_ra() {
+        assert_eq!(sb(2,0,1), 0x00208023);
+    }
+
+    #[test]
+    fn lb_a4_0_ra() {
+        assert_eq!(lb(14,0,1), 0x00008703);
+    }
 }

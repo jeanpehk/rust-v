@@ -341,6 +341,7 @@ fn eval(ins: u32, core: &mut Core) {
             let target_addr = ((sign_extend(imm,12)+core.regs[rs1]) as usize)%MEMSIZE;
             match funct3 {
                 funct3::LB => {
+                    println!("LB: rd {} imm {} rs1 {}", rd, imm, rs1);
                     core.regs[rd] = (core.memory[target_addr] as i8) as i32;
                 },
                 funct3::LBU => {
@@ -411,8 +412,9 @@ fn eval(ins: u32, core: &mut Core) {
 }
 
 fn load_test_program(core: &mut Core) {
-    store_mem_32(core, 0, addi(1,1,4));
-    store_mem_32(core, 4, addi(2,2,-4));
+    store_mem_32(core, 0, addi(1,0,0xa));
+    store_mem_32(core, 4, sb(1,18,0));
+    store_mem_32(core, 8, lb(14,18,0));
 }
 
 fn main() {
@@ -422,5 +424,5 @@ fn main() {
     run(&mut core);
 
     dump_regs(&core);
-    dump_mem(&core, 0x0);
+    dump_mem(&core, 0xf);
 }
