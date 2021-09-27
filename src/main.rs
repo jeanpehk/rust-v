@@ -3,12 +3,17 @@
 mod test;
 mod constants;
 mod ins;
+mod elf;
+
+use std::env;
+use std::fs;
 
 use constants::MEMSIZE;
 use constants::REG_NAMES;
 use constants::funct3;
 use constants::opcodes;
 use ins::*;
+use elf::*;
 
 /*
  * Main structure for core state
@@ -418,6 +423,7 @@ fn load_test_program(core: &mut Core) {
 }
 
 fn main() {
+    /*
     let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
 
     load_test_program(&mut core);
@@ -425,4 +431,13 @@ fn main() {
 
     dump_regs(&core);
     dump_mem(&core, 0xf);
+    */
+
+    // can we parse elf
+    let args: Vec<String> = env::args().collect();
+    let fname = &args[1];
+    let elf: Vec<u8> = fs::read(fname)
+        .expect("Couldn't read file");
+    println!("{:?}", &elf[0..20]);
+    let program: Vec<u32> = parse_elf(elf);
 }
