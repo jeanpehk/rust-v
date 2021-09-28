@@ -453,8 +453,8 @@ fn main() {
     // load_test_program(&mut core);
     run(&mut core);
 
-    dump_regs(&core);
     /*
+    dump_regs(&core);
     dump_mem(&core, 0xf);
     */
 
