@@ -1,4 +1,5 @@
 #![ allow( dead_code ) ]
+#![ allow( unused_imports ) ]
 
 mod test;
 mod constants;
@@ -18,7 +19,7 @@ use elf::*;
 /*
  * Main structure for core state
  */
-struct Core {
+pub struct Core {
     memory: [u8; MEMSIZE],
     regs: [i32;33]
 }
@@ -34,6 +35,9 @@ fn run(core: &mut Core) {
         if ins == 0 { break; };
         eval(ins, core);
         ins_cnt += 1;
+        if ins_cnt > 32 { // here we get ecall
+            break;
+        }
     }
     println!("Ran {} instructions.", ins_cnt);
 }
@@ -179,6 +183,7 @@ fn sign_extend(ins: u32, bits: u32) -> i32 {
 
 fn eval(ins: u32, core: &mut Core) {
     let opcode = take_range(6, 0, ins);
+    println!("opcode: {:#b}", opcode);
 
     match opcode {
         opcodes::OP_IMM => {
@@ -281,7 +286,10 @@ fn eval(ins: u32, core: &mut Core) {
         opcodes::JAL => {
             let JType { imm, rd } = get_j_type(ins);
             let signed = sign_extend(imm, 21);
-            core.regs[rd] = core.regs[32]+4;
+            println!("JAL: imm {} rd {}", imm, rd);
+            if rd != 0 {
+                core.regs[rd] = core.regs[32]+4;
+            }
             core.regs[32] = core.regs[32]+signed;
             return;
         },
@@ -423,21 +431,21 @@ fn load_test_program(core: &mut Core) {
 }
 
 fn main() {
-    /*
     let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
-
-    load_test_program(&mut core);
-    run(&mut core);
-
-    dump_regs(&core);
-    dump_mem(&core, 0xf);
-    */
 
     // can we parse elf
     let args: Vec<String> = env::args().collect();
     let fname = &args[1];
     let elf: Vec<u8> = fs::read(fname)
         .expect("Couldn't read file");
-    println!("{:?}", &elf[0..20]);
-    let program: Vec<u32> = parse_elf(elf);
+    parse_elf(&mut core, elf);
+
+//    load_test_program(&mut core);
+    run(&mut core);
+
+    dump_regs(&core);
+    /*
+    dump_mem(&core, 0xf);
+    */
+
 }
