@@ -41,7 +41,6 @@ fn run(core: &mut Core) {
         }
         else if pc == 0x670 {
             println!("rv32ui-p-add tests passed!");
-            break;
         }
     }
     println!("Ran {} instructions.", ins_cnt);
@@ -169,10 +168,10 @@ fn dump_mem(core: &Core, addr: usize) {
 
 fn dump_regs(core: &Core) {
     let regs = core.regs;
-    println!("{:6} {:<10} {}", "Name", "Dec", "Hex");
-    println!("{:6} {:<10} {}", "----", "---", "---");
+    println!("{:6} {:<12} {}", "Name", "Dec", "Hex");
+    println!("{:6} {:<12} {}", "----", "---", "---");
     for i in 0..=32 {
-        println!("{:6} {:<10} {:#010x}", REG_NAMES[i], regs[i], regs[i]);
+        println!("{:6} {:<12} {:#010x}", REG_NAMES[i], regs[i], regs[i]);
     }
 }
 
@@ -434,22 +433,24 @@ fn eval(ins: u32, core: &mut Core) {
 }
 
 fn load_test_program(core: &mut Core) {
+    store_mem_32(core, 0, 0x00018063);
+    /*
     store_mem_32(core, 0, addi(1,0,0xa));
     store_mem_32(core, 4, sb(1,18,0));
     store_mem_32(core, 8, lb(14,18,0));
+    */
 }
 
 fn main() {
     let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
 
-    // can we parse elf
     let args: Vec<String> = env::args().collect();
     let fname = &args[1];
     let elf: Vec<u8> = fs::read(fname)
         .expect("Couldn't read file");
     parse_elf(&mut core, elf);
 
-//    load_test_program(&mut core);
+    // load_test_program(&mut core);
     run(&mut core);
 
     dump_regs(&core);
