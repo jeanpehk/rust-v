@@ -35,7 +35,12 @@ fn run(core: &mut Core) {
         if ins == 0 { break; };
         eval(ins, core);
         ins_cnt += 1;
-        if ins_cnt > 32 { // here we get ecall
+        if pc == 0x654 {
+            println!("FAIL");
+            break;
+        }
+        else if pc == 0x670 {
+            println!("rv32ui-p-add tests passed!");
             break;
         }
     }
@@ -183,7 +188,6 @@ fn sign_extend(ins: u32, bits: u32) -> i32 {
 
 fn eval(ins: u32, core: &mut Core) {
     let opcode = take_range(6, 0, ins);
-    println!("opcode: {:#b}", opcode);
 
     match opcode {
         opcodes::OP_IMM => {
@@ -192,7 +196,7 @@ fn eval(ins: u32, core: &mut Core) {
 
             match funct3 {
                 funct3::ADDI => {
-                    core.regs[rd] = core.regs[rs1] + signed_imm
+                    core.regs[rd] = core.regs[rs1].wrapping_add(signed_imm);
                 },
                 funct3::SLTI => {
                     core.regs[rd] = if core.regs[rs1] < signed_imm {1} else {0};
@@ -235,10 +239,10 @@ fn eval(ins: u32, core: &mut Core) {
             match funct3 {
                 funct3::ADD_SUB => {
                     if funct7 == 0 { // add
-                        core.regs[rd] = core.regs[rs1] + core.regs[rs2];
+                        core.regs[rd] = core.regs[rs1].wrapping_add(core.regs[rs2]);
                     }
                     else { // sub
-                        core.regs[rd] = core.regs[rs1] - core.regs[rs2];
+                        core.regs[rd] = core.regs[rs1].wrapping_sub(core.regs[rs2]);
                     }
                 },
                 funct3::SLT => {
@@ -286,7 +290,6 @@ fn eval(ins: u32, core: &mut Core) {
         opcodes::JAL => {
             let JType { imm, rd } = get_j_type(ins);
             let signed = sign_extend(imm, 21);
-            println!("JAL: imm {} rd {}", imm, rd);
             if rd != 0 {
                 core.regs[rd] = core.regs[32]+4;
             }
@@ -417,8 +420,14 @@ fn eval(ins: u32, core: &mut Core) {
                 }
             }
         },
+        opcodes::SYSTEM => {
+            /*
+             * mb someday
+             */
+        },
         _ => {
             println!("Unknown opcode: {}", opcode);
+            panic!();
         }
     }
     core.regs[32] = core.regs[32]+4;

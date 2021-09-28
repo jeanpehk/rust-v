@@ -47,6 +47,7 @@ pub mod opcodes {
     pub const LOAD: u32 = 0b0000011;
     pub const STORE: u32 = 0b0100011;
     pub const MISCMEM: u32 = 0b0001111;
+    pub const SYSTEM: u32 = 0b1110011;
 }
 
 pub mod funct3 {

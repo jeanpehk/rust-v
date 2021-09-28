@@ -623,4 +623,10 @@ mod encoding_tests {
     fn lb_a4_0_ra() {
         assert_eq!(lb(14,0,1), 0x00008703);
     }
+
+    #[test]
+    fn lui_ra_0x7ffff() {
+        assert_eq!(lui(1, 0x7ffff), 0x7ffff0b7);
+    }
+
 }
