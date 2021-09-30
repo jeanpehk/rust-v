@@ -1,6 +1,7 @@
 use crate::Core;
+use crate::constants::START_ADDR;
 
-pub fn parse_elf(core: &mut Core, elf: Vec<u8>) {
+pub fn load_elf(core: &mut Core, elf: &Vec<u8>) {
     /*
      * ELF Header
      */
@@ -14,10 +15,9 @@ pub fn parse_elf(core: &mut Core, elf: Vec<u8>) {
         panic!("ELF not RISC-V architecture.");
     }
 
-    let e_phoff = take4(&elf, 0x1c) as usize; // program header offset
-    let e_phnum = take2(&elf, 0x2c); // number of entries
     let e_phentsize = take2(&elf, 0x2a) as usize; // size of entry
-    let e_shstrndx = take2(&elf, 0x32); // size of entry
+    let e_phnum = take2(&elf, 0x2c); // number of entries
+    let e_phoff = take4(&elf, 0x1c) as usize; // program header offset
 
     /*
      * Program Header
@@ -30,15 +30,15 @@ pub fn parse_elf(core: &mut Core, elf: Vec<u8>) {
 
         for i in 0..p_memsz {
             // we imagine 0x0 = 0x80000000
-            core.memory[(p_vaddr as u32-0x80000000) as usize+i] = elf[p_offset+i];
+            core.memory[(p_vaddr as u32-START_ADDR) as usize+i] = elf[p_offset+i];
         }
-
         index += e_phentsize;
     }
+}
 
-    /*
-     * Program Header
-     */
+// very hacky very bad k
+pub fn get_riscv_tests_addrs(elf: &Vec<u8>) -> (u32, u32) {
+    let e_shstrndx = take2(&elf, 0x32); // size of entry
     let e_shoff = take4(&elf, 0x20) as usize; // start of section header
     let e_shentsize = take2(&elf, 0x2e) as usize; // size of entry
     let e_shnum = take2(&elf, 0x30); // size of entry
@@ -90,20 +90,19 @@ pub fn parse_elf(core: &mut Core, elf: Vec<u8>) {
         }
         ix += sht_entsize;
     }
-
-    println!("fail_addr: {:#x}, pass_addr: {:#x}", fail_addr, pass_addr);
+    return (pass_addr-START_ADDR, fail_addr-START_ADDR);
 }
 
-fn take4(elf: &Vec<u8>, i: usize) -> i32 {
-    return (((elf[i+3] as u32) << 24)
+fn take4(elf: &Vec<u8>, i: usize) -> u32 {
+    return ((elf[i+3] as u32) << 24)
         | ((elf[i+2] as u32) << 16)
         | ((elf[i+1] as u32) << 8)
-        | (elf[i] as u32)) as i32;
+        | (elf[i] as u32);
 }
 
-fn take2(elf: &Vec<u8>, i: usize) -> i32 {
-    return (((elf[i+1] as u32) << 8)
-            | (elf[i] as u32)) as i32;
+fn take2(elf: &Vec<u8>, i: usize) -> u32 {
+    return ((elf[i+1] as u32) << 8)
+            | (elf[i] as u32);
 }
 
 fn read(elf: &Vec<u8>, i: usize) -> String {

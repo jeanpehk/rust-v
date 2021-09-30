@@ -1,20 +1,20 @@
 #![ allow( dead_code ) ]
 #![ allow( unused_imports ) ]
 
-mod test;
 mod constants;
-mod ins;
 mod elf;
+mod ins;
+mod test;
 
 use std::env;
 use std::fs;
 
-use constants::MEMSIZE;
-use constants::REG_NAMES;
 use constants::funct3;
+use constants::MEMSIZE;
 use constants::opcodes;
-use ins::*;
+use constants::REG_NAMES;
 use elf::*;
+use ins::*;
 
 /*
  * Main structure for core state
@@ -41,6 +41,29 @@ fn run(core: &mut Core) {
         }
         else if pc == 0x670 {
             println!("rv32ui-p-add tests passed!");
+        }
+    }
+    println!("Ran {} instructions.", ins_cnt);
+}
+
+fn run_riscv_tests(core: &mut Core, pass_addr: u32, fail_addr: u32) {
+    let mut ins_cnt = 0;
+    loop {
+        let pc = core.regs[32] as usize;
+        let ins = ((core.memory[pc+3] as u32) << 24)
+            | ((core.memory[pc+2] as u32) << 16)
+            | ((core.memory[pc+1] as u32) << 8)
+            | core.memory[pc] as u32;
+        if ins == 0 { break; };
+        eval(ins, core);
+        ins_cnt += 1;
+        if pc == pass_addr as usize {
+            println!("riscv-tests passed!");
+            break;
+        }
+        else if pc == fail_addr as usize {
+            println!("riscv-tests failed");
+            break;
         }
     }
     println!("Ran {} instructions.", ins_cnt);
@@ -448,10 +471,12 @@ fn main() {
     let fname = &args[1];
     let elf: Vec<u8> = fs::read(fname)
         .expect("Couldn't read file");
-    parse_elf(&mut core, elf);
+    load_elf(&mut core, &elf);
+    let (pass_addr, fail_addr) = get_riscv_tests_addrs(&elf);
+    println!("pass_addr: {:#x}, fail_addr: {:#x}", pass_addr, fail_addr);
 
     // load_test_program(&mut core);
-    run(&mut core);
+    run_riscv_tests(&mut core, pass_addr, fail_addr);
 
     /*
     dump_regs(&core);

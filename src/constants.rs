@@ -1,3 +1,4 @@
+pub const START_ADDR: u32 = 0x80000000;
 pub const MEMSIZE: usize = 8 * 1024;
 pub const REG_NAMES: [&str; 33] = [
     "zero",
@@ -34,6 +35,7 @@ pub const REG_NAMES: [&str; 33] = [
     "t6",
     "pc"
 ];
+
 
 pub mod opcodes {
     pub const TEST: u32 = 0;
