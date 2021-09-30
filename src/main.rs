@@ -358,7 +358,6 @@ pub fn eval(ins: u32, core: &mut Core) {
             let target_addr = ((sign_extend(imm,12)+core.regs[rs1]) as usize)%MEMSIZE;
             match funct3 {
                 funct3::LB => {
-                    println!("LB: rd {} imm {} rs1 {}", rd, imm, rs1);
                     core.regs[rd] = (core.memory[target_addr] as i8) as i32;
                 },
                 funct3::LBU => {
@@ -413,9 +412,14 @@ pub fn eval(ins: u32, core: &mut Core) {
             match funct3 {
                 funct3::FENCE => {
                     /*
-                    * We do single core no cache so nothing to see here.
+                    * We do single core so nothing to see here.
                     */
                 },
+                funct3::FENCE_I => {
+                    /*
+                    * Instruction for a single core are always done in-order.
+                    */
+                }
                 _ => {
                     println!("Unknown funct3 in Opcode MiscMem: {} ", funct3);
                 }

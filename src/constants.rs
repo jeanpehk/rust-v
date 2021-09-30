@@ -1,5 +1,5 @@
 pub const START_ADDR: u32 = 0x80000000;
-pub const MEMSIZE: usize = 8 * 1024;
+pub const MEMSIZE: usize = 16 * 1024;
 pub const REG_NAMES: [&str; 33] = [
     "zero",
     "ra",
@@ -93,4 +93,5 @@ pub mod funct3 {
     pub const SW: u32 = 0b010;
 
     pub const FENCE: u32 = 0b000;
+    pub const FENCE_I: u32 = 0b001;
 }
