@@ -2,4 +2,5 @@
 *.swp
 *.lock
 riscv-tests
-add
+# remove this at some point
+run-riscv-tests.sh

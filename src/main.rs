@@ -5,6 +5,7 @@ mod constants;
 mod elf;
 mod ins;
 mod test;
+mod riscv_tests;
 
 use std::env;
 use std::fs;
@@ -15,6 +16,7 @@ use constants::opcodes;
 use constants::REG_NAMES;
 use elf::*;
 use ins::*;
+use riscv_tests::*;
 
 /*
  * Main structure for core state
@@ -41,29 +43,6 @@ fn run(core: &mut Core) {
         }
         else if pc == 0x670 {
             println!("rv32ui-p-add tests passed!");
-        }
-    }
-    println!("Ran {} instructions.", ins_cnt);
-}
-
-fn run_riscv_tests(core: &mut Core, pass_addr: u32, fail_addr: u32) {
-    let mut ins_cnt = 0;
-    loop {
-        let pc = core.regs[32] as usize;
-        let ins = ((core.memory[pc+3] as u32) << 24)
-            | ((core.memory[pc+2] as u32) << 16)
-            | ((core.memory[pc+1] as u32) << 8)
-            | core.memory[pc] as u32;
-        if ins == 0 { break; };
-        eval(ins, core);
-        ins_cnt += 1;
-        if pc == pass_addr as usize {
-            println!("riscv-tests passed!");
-            break;
-        }
-        else if pc == fail_addr as usize {
-            println!("riscv-tests failed");
-            break;
         }
     }
     println!("Ran {} instructions.", ins_cnt);
@@ -208,7 +187,7 @@ fn sign_extend(ins: u32, bits: u32) -> i32 {
     };
 }
 
-fn eval(ins: u32, core: &mut Core) {
+pub fn eval(ins: u32, core: &mut Core) {
     let opcode = take_range(6, 0, ins);
 
     match opcode {
@@ -456,15 +435,16 @@ fn eval(ins: u32, core: &mut Core) {
 }
 
 fn load_test_program(core: &mut Core) {
-    store_mem_32(core, 0, 0x00018063);
-    /*
     store_mem_32(core, 0, addi(1,0,0xa));
+    /*
+    store_mem_32(core, 0, 0x00018063);
     store_mem_32(core, 4, sb(1,18,0));
     store_mem_32(core, 8, lb(14,18,0));
     */
 }
 
 fn main() {
+    /*
     let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
 
     let args: Vec<String> = env::args().collect();
@@ -474,9 +454,11 @@ fn main() {
     load_elf(&mut core, &elf);
     let (pass_addr, fail_addr) = get_riscv_tests_addrs(&elf);
     println!("pass_addr: {:#x}, fail_addr: {:#x}", pass_addr, fail_addr);
+    */
 
     // load_test_program(&mut core);
-    run_riscv_tests(&mut core, pass_addr, fail_addr);
+//    run(&mut core); //, pass_addr, fail_addr);
+    run_riscv_tests();
 
     /*
     dump_regs(&core);
