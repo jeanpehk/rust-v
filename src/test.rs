@@ -402,7 +402,13 @@ mod tests {
         core.regs[1] = -1;
         core.regs[2] = 2;
         eval(0x0020d663, &mut core);
-        assert_ne!(12, core.regs[32]);
+        assert_ne!(12, core.regs[32]); // notice NE!
+
+        core.regs[32] = 0;
+        core.regs[1] = 1;
+        core.regs[2] = 1;
+        eval(0x0020d663, &mut core);
+        assert_eq!(12, core.regs[32]);
     }
 
     #[test]
@@ -416,6 +422,12 @@ mod tests {
         core.regs[32] = 0;
         core.regs[1] = -1;
         core.regs[2] = 2;
+        eval(0x0020f663, &mut core);
+        assert_eq!(12, core.regs[32]);
+
+        core.regs[32] = 0;
+        core.regs[1] = 1;
+        core.regs[2] = 1;
         eval(0x0020f663, &mut core);
         assert_eq!(12, core.regs[32]);
     }

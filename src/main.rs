@@ -337,13 +337,13 @@ pub fn eval(ins: u32, core: &mut Core) {
                     }
                 },
                 funct3::BGE => {
-                    if core.regs[rs1] > core.regs[rs2] {
+                    if core.regs[rs1] >= core.regs[rs2] {
                         core.regs[32] = target_addr;
                         return;
                     }
                 },
                 funct3::BGEU => {
-                    if (core.regs[rs1] as u32) > (core.regs[rs2] as u32) {
+                    if (core.regs[rs1] as u32) >= (core.regs[rs2] as u32) {
                         core.regs[32] = target_addr;
                         return;
                     }
@@ -458,10 +458,10 @@ fn main() {
     load_elf(&mut core, &elf);
     let (pass_addr, fail_addr) = get_riscv_tests_addrs(&elf);
     println!("pass_addr: {:#x}, fail_addr: {:#x}", pass_addr, fail_addr);
-    */
 
     // load_test_program(&mut core);
-//    run(&mut core); //, pass_addr, fail_addr);
+    run(&mut core);
+    */
     run_riscv_tests();
 
     /*
