@@ -38,7 +38,9 @@ pub fn run_riscv_tests() {
     }
     println!("\nRan a total of {} tests", i);
     println!("- {} tests {}", success, "successful".green());
-    println!("- {} tests {}", i - success, "failed".red());
+    if i - success != 0 {
+        println!("- {} tests {}", i - success, "failed".red());
+    }
 }
 
 fn execute_riscv_test(core: &mut Core, pass_addr: u32, fail_addr: u32) -> u32 {

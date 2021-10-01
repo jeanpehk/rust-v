@@ -9,6 +9,7 @@ mod riscv_tests;
 
 use std::env;
 use std::fs;
+use std::io;
 
 use constants::funct3;
 use constants::MEMSIZE;
@@ -37,13 +38,6 @@ fn run(core: &mut Core) {
         if ins == 0 { break; };
         eval(ins, core);
         ins_cnt += 1;
-        if pc == 0x654 {
-            println!("FAIL");
-            break;
-        }
-        else if pc == 0x670 {
-            println!("rv32ui-p-add tests passed!");
-        }
     }
     println!("Ran {} instructions.", ins_cnt);
 }
@@ -195,6 +189,8 @@ pub fn eval(ins: u32, core: &mut Core) {
             let IType { imm, rs1, rd, funct3 } = get_i_type(ins);
             let signed_imm = sign_extend(imm, 12);
 
+            if rd == 0 { core.regs[32] += 4; return; }
+
             match funct3 {
                 funct3::ADDI => {
                     core.regs[rd] = core.regs[rs1].wrapping_add(signed_imm);
@@ -237,6 +233,9 @@ pub fn eval(ins: u32, core: &mut Core) {
         },
         opcodes::OP => {
             let RType { funct7, rs2, rs1, funct3, rd } = get_r_type(ins);
+
+            if rd == 0 { core.regs[32] += 4; return; }
+
             match funct3 {
                 funct3::ADD_SUB => {
                     if funct7 == 0 { // add
@@ -282,11 +281,15 @@ pub fn eval(ins: u32, core: &mut Core) {
         },
         opcodes::LUI => {
             let UType { rd, imm } = get_u_type(ins);
-            core.regs[rd] = (imm << 12) as i32;
+            if rd != 0 {
+                core.regs[rd] = (imm << 12) as i32;
+            }
         },
         opcodes::AUIPC => {
             let UType { rd, imm } = get_u_type(ins);
-            core.regs[rd] = core.regs[32] + ((imm<<12) as i32);
+            if rd != 0 {
+                core.regs[rd] = core.regs[32] + ((imm<<12) as i32);
+            }
         },
         opcodes::JAL => {
             let JType { imm, rd } = get_j_type(ins);
@@ -301,9 +304,11 @@ pub fn eval(ins: u32, core: &mut Core) {
             let IType { imm, rs1, rd, funct3: _ } = get_i_type(ins);
 
             let imm = sign_extend(imm, 12);
-            let val = imm+core.regs[rs1];
+            let val = imm.wrapping_add(core.regs[rs1]);
 
-            core.regs[rd] = core.regs[32]+4;
+            if rd != 0 {
+                core.regs[rd] = core.regs[32]+4;
+            }
             core.regs[32] = if val%2 == 0 {val} else {val-1};
             return;
         },
@@ -355,6 +360,9 @@ pub fn eval(ins: u32, core: &mut Core) {
         },
         opcodes::LOAD => {
             let IType { imm, rs1, rd, funct3 } = get_i_type(ins);
+
+            if rd == 0 { core.regs[32] += 4; return }
+
             let target_addr = ((sign_extend(imm,12)+core.regs[rs1]) as usize)%MEMSIZE;
             match funct3 {
                 funct3::LB => {
