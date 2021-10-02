@@ -8,14 +8,14 @@ A simple RISC-V Core in Rust.
   - FENCE is not implemented since this is only single core.
   - No ECALL / EBREAK since no implementation for privileged spec.
 
-## Unit Tests
+## Tests
 
 Run simple unit tests with
 ```
 cargo t unit_tests
 ```
 
-## riscv-tests
+### riscv-tests
 
 To run the *rv32ui-p* tests from https://github.com/riscv-software-src/riscv-tests
 you need to:
