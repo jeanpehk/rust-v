@@ -4,12 +4,11 @@
 mod constants;
 mod elf;
 mod ins;
-mod test;
+mod tests;
 mod riscv_tests;
 
 use std::env;
 use std::fs;
-use std::io;
 
 use constants::funct3;
 use constants::MEMSIZE;
@@ -17,7 +16,6 @@ use constants::opcodes;
 use constants::REG_NAMES;
 use elf::*;
 use ins::*;
-use riscv_tests::*;
 
 /*
  * Main structure for core state
@@ -456,7 +454,6 @@ fn load_test_program(core: &mut Core) {
 }
 
 fn main() {
-    /*
     let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
 
     let args: Vec<String> = env::args().collect();
@@ -469,11 +466,9 @@ fn main() {
 
     // load_test_program(&mut core);
     run(&mut core);
-    */
-    run_riscv_tests();
 
-    /*
     dump_regs(&core);
+    /*
     dump_mem(&core, 0xf);
     */
 
