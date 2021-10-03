@@ -1,5 +1,4 @@
 #![ allow( dead_code ) ]
-#![ allow( unused_imports ) ]
 
 mod constants;
 mod elf;
@@ -27,17 +26,28 @@ pub struct Core {
 
 fn run(core: &mut Core) {
     let mut ins_cnt = 0;
-    loop {
-        let pc = core.regs[32] as usize;
-        let ins = ((core.memory[pc+3] as u32) << 24)
-            | ((core.memory[pc+2] as u32) << 16)
-            | ((core.memory[pc+1] as u32) << 8)
-            | core.memory[pc] as u32;
-        if ins == 0 { break; };
-        eval(ins, core);
+    let mut done = false;
+    while !done {
+        done = step(core);
         ins_cnt += 1;
     }
     println!("Ran {} instructions.", ins_cnt);
+}
+
+fn step(core: &mut Core) -> bool {
+    let pc = core.regs[32] as usize;
+    let ins = read_mem_32(core, pc);
+    if ins == 0 { return true; }
+    eval(ins, core);
+    return false;
+}
+
+fn read_mem_32(core: &Core, addr: usize) -> u32 {
+    return ((core.memory[addr+3] as u32) << 24)
+        | ((core.memory[addr+2] as u32) << 16)
+        | ((core.memory[addr+1] as u32) << 8)
+        | core.memory[addr] as u32;
+
 }
 
 fn store_mem_32(mut core: &mut Core, addr: u32, value: u32) {
@@ -47,6 +57,33 @@ fn store_mem_32(mut core: &mut Core, addr: u32, value: u32) {
     core.memory[addr+2] = ((value>>16) & 0xff) as u8;
     core.memory[addr+3] = ((value>>24) & 0xff) as u8;
 }
+
+/*
+ * dump 10 bytes starting from index
+ */
+fn dump_mem(core: &Core, addr: usize) {
+    let range = 10;
+    let mut i = 0;
+    println!("{:11} {:5} {:3}", "Memory", "Dec",  "Hex");
+    println!("{:11} {:5} {:3}", "------", "---", "---");
+    while i < range {
+        println!("{:#010x}: {:<#5} {:<#02x}", addr+i, core.memory[addr+i], core.memory[addr+i]);
+        i += 1;
+    }
+}
+
+fn dump_regs(core: &Core) {
+    let regs = core.regs;
+    println!("{:6} {:<12} {}", "Name", "Dec", "Hex");
+    println!("{:6} {:<12} {}", "----", "---", "---");
+    for i in 0..=32 {
+        println!("{:6} {:<12} {:#010x}", REG_NAMES[i], regs[i], regs[i]);
+    }
+}
+
+/*
+ * Instruction decoding
+ */
 
 struct IType {
     imm: u32,
@@ -146,29 +183,6 @@ pub fn take_range(start: u32, end: u32, ins: u32) -> u32 {
     return (ins >> end) & ((1 << (start-end+1))-1);
 }
 
-/*
- * dump 10 bytes starting from index
- */
-fn dump_mem(core: &Core, addr: usize) {
-    let range = 10;
-    let mut i = 0;
-    println!("{:11} {:5} {:3}", "Memory", "Dec",  "Hex");
-    println!("{:11} {:5} {:3}", "------", "---", "---");
-    while i < range {
-        println!("{:#010x}: {:<#5} {:<#02x}", addr+i, core.memory[addr+i], core.memory[addr+i]);
-        i += 1;
-    }
-}
-
-fn dump_regs(core: &Core) {
-    let regs = core.regs;
-    println!("{:6} {:<12} {}", "Name", "Dec", "Hex");
-    println!("{:6} {:<12} {}", "----", "---", "---");
-    for i in 0..=32 {
-        println!("{:6} {:<12} {:#010x}", REG_NAMES[i], regs[i], regs[i]);
-    }
-}
-
 fn sign_extend(ins: u32, bits: u32) -> i32 {
     let sign_bit = take_range(bits-1, bits-1, ins);
     return if sign_bit == 0 {
@@ -179,6 +193,9 @@ fn sign_extend(ins: u32, bits: u32) -> i32 {
     };
 }
 
+/*
+ * Evaluate a single instruction
+ */
 pub fn eval(ins: u32, core: &mut Core) {
     let opcode = take_range(6, 0, ins);
 
@@ -461,15 +478,11 @@ fn main() {
     let elf: Vec<u8> = fs::read(fname)
         .expect("Couldn't read file");
     load_elf(&mut core, &elf);
-    let (pass_addr, fail_addr) = get_riscv_tests_addrs(&elf);
-    println!("pass_addr: {:#x}, fail_addr: {:#x}", pass_addr, fail_addr);
 
-    // load_test_program(&mut core);
     run(&mut core);
 
     dump_regs(&core);
     /*
     dump_mem(&core, 0xf);
     */
-
 }
