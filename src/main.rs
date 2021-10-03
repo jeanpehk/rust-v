@@ -26,9 +26,7 @@ pub struct Core {
 
 fn run(core: &mut Core) {
     let mut ins_cnt = 0;
-    let mut done = false;
-    while !done {
-        done = step(core);
+    while !step(core) {
         ins_cnt += 1;
     }
     println!("Ran {} instructions.", ins_cnt);

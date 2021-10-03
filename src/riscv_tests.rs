@@ -4,7 +4,6 @@
 #[cfg(test)]
 mod riscv_tests {
     use std::fs;
-    use std::path::Path;
 
     use colored::*;
 
