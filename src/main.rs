@@ -10,6 +10,7 @@ use std::env;
 use std::fs;
 
 use constants::funct3;
+use constants::funct12;
 use constants::MEMSIZE;
 use constants::opcodes;
 use constants::REG_NAMES;
@@ -86,8 +87,8 @@ fn dump_regs(core: &Core) {
 struct IType {
     imm: u32,
     rs1: usize,
-    rd: usize,
-    funct3: u32
+    funct3: u32,
+    rd: usize
 }
 
 struct UType {
@@ -127,7 +128,7 @@ fn get_i_type(ins: u32) -> IType {
     let rs1 = take_range(19,15,ins) as usize;
     let rd = take_range(11,7,ins) as usize;
     let funct3 = take_range(14,12,ins);
-    return IType { imm, rs1, rd, funct3 };
+    return IType { imm, rs1, funct3, rd };
 }
 
 fn get_u_type(ins: u32) -> UType {
@@ -199,7 +200,7 @@ pub fn eval(ins: u32, core: &mut Core) {
 
     match opcode {
         opcodes::OP_IMM => {
-            let IType { imm, rs1, rd, funct3 } = get_i_type(ins);
+            let IType { imm, rs1, funct3, rd } = get_i_type(ins);
             let signed_imm = sign_extend(imm, 12);
 
             if rd == 0 { core.regs[32] += 4; return; }
@@ -314,7 +315,7 @@ pub fn eval(ins: u32, core: &mut Core) {
             return;
         },
         opcodes::JALR => {
-            let IType { imm, rs1, rd, funct3: _ } = get_i_type(ins);
+            let IType { imm, rs1, funct3: _, rd } = get_i_type(ins);
 
             let imm = sign_extend(imm, 12);
             let val = imm.wrapping_add(core.regs[rs1]);
@@ -372,7 +373,7 @@ pub fn eval(ins: u32, core: &mut Core) {
             }
         },
         opcodes::LOAD => {
-            let IType { imm, rs1, rd, funct3 } = get_i_type(ins);
+            let IType { imm, rs1, funct3, rd } = get_i_type(ins);
 
             if rd == 0 { core.regs[32] += 4; return }
 
@@ -438,7 +439,7 @@ pub fn eval(ins: u32, core: &mut Core) {
                 },
                 funct3::FENCE_I => {
                     /*
-                    * Instruction for a single core are always done in-order.
+                    * Instructions for single core are always done in-order.
                     */
                 }
                 _ => {
@@ -447,9 +448,36 @@ pub fn eval(ins: u32, core: &mut Core) {
             }
         },
         opcodes::SYSTEM => {
-            /*
-             * mb someday
-             */
+            let IType { imm: funct12, rs1, funct3, rd } = get_i_type(ins);
+            match (funct12, rs1, funct3, rd) {
+                (funct12::ECALL, 0x0, funct3::PRIV, 0x0) => {
+                    //
+                }
+                (funct12::EBREAK, 0x0, funct3::PRIV, 0x0) => {
+                    //
+                }
+                (csr, _, funct3::CSRRW, _) => {
+                    println!("CSRRW");
+                },
+                (csr, _, funct3::CSRRS, _) => {
+                    println!("CSRRS");
+                },
+                (csr, _, funct3::CSRRC, _) => {
+                    println!("CSRRC");
+                },
+                (csr, _, funct3::CSRRWI, _) => {
+                    println!("CSRRWI");
+                },
+                (csr, _, funct3::CSRRSI, _) => {
+                    println!("CSRRSI");
+                },
+                (csr, _, funct3::CSRRCI, _) => {
+                    println!("CSRRCI");
+                },
+                _ => {
+                    //
+                }
+            }
         },
         _ => {
             println!("Unknown opcode: {}", opcode);
