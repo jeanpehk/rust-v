@@ -22,7 +22,12 @@ use ins::*;
  */
 pub struct Core {
     memory: [u8; MEMSIZE],
-    regs: [i32;33]
+    regs: [i32;33],
+    csr: [i32;4096]
+}
+
+pub fn init() -> Core {
+    return Core { memory: [0;MEMSIZE], regs: [0;33], csr: [0;4096] };
 }
 
 fn run(core: &mut Core) {
@@ -497,7 +502,7 @@ fn load_test_program(core: &mut Core) {
 }
 
 fn main() {
-    let mut core = Core { memory: [0;MEMSIZE], regs: [0;33] };
+    let mut core = init();
 
     let args: Vec<String> = env::args().collect();
     let fname = &args[1];
