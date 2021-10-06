@@ -5,8 +5,6 @@ A simple RISC-V Core in Rust.
 ## Features
 
 - RV32I
-  - FENCE is not implemented since this is only single core.
-  - No ECALL / EBREAK since no implementation for privileged spec.
 
 ## Tests
 
