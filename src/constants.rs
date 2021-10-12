@@ -111,4 +111,5 @@ pub mod funct12 {
     // SYSTEM
     pub const ECALL: u32 = 0b000000000000;
     pub const EBREAK: u32 = 0b000000000001;
+    pub const MRET: u32 = 0b001100000010;
 }

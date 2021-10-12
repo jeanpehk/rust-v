@@ -23,11 +23,11 @@ use ins::*;
 pub struct Core {
     memory: [u8; MEMSIZE],
     regs: [i32;33],
-    csr: [i32;4096]
+    csrs: [i32;4096]
 }
 
 pub fn init() -> Core {
-    return Core { memory: [0;MEMSIZE], regs: [0;33], csr: [0;4096] };
+    return Core { memory: [0;MEMSIZE], regs: [0;33], csrs: [0;4096] };
 }
 
 fn run(core: &mut Core) {
@@ -46,12 +46,23 @@ fn step(core: &mut Core) -> bool {
     return false;
 }
 
+fn write(core: &mut Core, rd: usize, val: i32) {
+    if rd != 0 { core.regs[rd] = val };
+}
+
+fn csr_write_bits(core: &mut Core, csr: usize, mask: i32) -> i32 {
+    return core.csrs[csr] | mask;
+}
+
+fn csr_clear_bits(core: &mut Core, csr: usize, mask: i32) -> i32 {
+    return core.csrs[csr] & (!mask);
+}
+
 fn read_mem_32(core: &Core, addr: usize) -> u32 {
     return ((core.memory[addr+3] as u32) << 24)
         | ((core.memory[addr+2] as u32) << 16)
         | ((core.memory[addr+1] as u32) << 8)
         | core.memory[addr] as u32;
-
 }
 
 fn store_mem_32(mut core: &mut Core, addr: u32, value: u32) {
@@ -256,6 +267,7 @@ pub fn eval(ins: u32, core: &mut Core) {
             if rd == 0 { core.regs[32] += 4; return; }
 
             match funct3 {
+
                 funct3::ADD_SUB => {
                     if funct7 == 0 { // add
                         core.regs[rd] = core.regs[rs1].wrapping_add(core.regs[rs2]);
@@ -453,8 +465,8 @@ pub fn eval(ins: u32, core: &mut Core) {
             }
         },
         opcodes::SYSTEM => {
-            let IType { imm: funct12, rs1, funct3, rd } = get_i_type(ins);
-            match (funct12, rs1, funct3, rd) {
+            let IType { imm, rs1, funct3, rd } = get_i_type(ins);
+            match (imm, rs1, funct3, rd) {
                 (funct12::ECALL, 0x0, funct3::PRIV, 0x0) => {
                     //
                 }
@@ -462,31 +474,66 @@ pub fn eval(ins: u32, core: &mut Core) {
                     //
                 }
                 (csr, _, funct3::CSRRW, _) => {
-                    println!("CSRRW");
+                    let val_rs1 = core.regs[rs1];
+                    if rd != 0 {
+                        core.regs[rd] = core.csrs[csr as usize];
+                    }
+                    write(core, rd, core.csrs[csr as usize]);
+                    core.csrs[csr as usize] = val_rs1;
                 },
                 (csr, _, funct3::CSRRS, _) => {
-                    println!("CSRRS");
+                    let mask = core.regs[rs1];
+                    write(core, rd, core.csrs[csr as usize]);
+                    csr_write_bits(core, csr as usize, mask);
                 },
                 (csr, _, funct3::CSRRC, _) => {
-                    println!("CSRRC");
+                    write(core, rd, core.csrs[csr as usize]);
+                    csr_clear_bits(core, csr as usize, core.regs[rs1]);
                 },
-                (csr, _, funct3::CSRRWI, _) => {
-                    println!("CSRRWI");
+                (csr, imm, funct3::CSRRWI, _) => {
+                    if rd != 0 {
+                        core.regs[rd] = core.csrs[csr as usize];
+                    }
+                    core.csrs[csr as usize] = imm as i32;
                 },
-                (csr, _, funct3::CSRRSI, _) => {
-                    println!("CSRRSI");
+                (csr, imm, funct3::CSRRSI, _) => {
+                    write(core, rd, core.csrs[csr as usize]);
+                    if imm != 0 {
+                        csr_write_bits(core, csr as usize, imm as i32);
+                    }
                 },
-                (csr, _, funct3::CSRRCI, _) => {
-                    println!("CSRRCI");
+                (csr, imm, funct3::CSRRCI, _) => {
+                    write(core, rd, core.csrs[csr as usize]);
+                    if imm != 0 {
+                        csr_clear_bits(core, csr as usize, core.regs[rs1]);
+                    }
+                },
+                (funct12::MRET, 0x0, funct3::PRIV, 0x0) => {
+                    println!("mstatus: {}", core.csrs[0x300]);
+
+                    let mie = take_range(3,3,core.csrs[0x300] as u32);
+                    let mpie = take_range(7,7,core.csrs[0x300] as u32);
+                    let mpp = take_range(12,11,core.csrs[0x300] as u32);
+                    println!("mie: {}, mpie: {}, mpp: {}", mie, mpie, mpp);
+
+                    // (machine) return from trap
+                    // MIE -> MPIE
+                    // privilege mode -> MPP
+                    // MPIE -> 1
+                    // MPP -> M (user-mode not supported)
+
+                    core.csrs[0x300] = core.csrs[0x300] | 0b10000000;
+                    println!("mie: {}, mpie: {}, mpp: {}", mie, mpie, mpp);
+
+                    // set pc to value in mepc
                 },
                 _ => {
-                    //
+                    println!("Unknown SYSTEM at {:#x}", core.regs[32]);
                 }
             }
         },
         _ => {
-            println!("Unknown opcode: {}", opcode);
-            panic!();
+            panic!("Unknown opcode: {}", opcode);
         }
     }
     core.regs[32] = core.regs[32]+4;
@@ -512,8 +559,8 @@ fn main() {
 
     run(&mut core);
 
-    dump_regs(&core);
     /*
+    dump_regs(&core);
     dump_mem(&core, 0xf);
     */
 }

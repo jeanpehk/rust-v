@@ -2,8 +2,6 @@
 mod unit_tests {
     #[cfg(test)]
     mod core_tests {
-        use crate::MEMSIZE;
-        use crate::Core;
         use crate::init;
         use crate::eval;
 

@@ -7,7 +7,6 @@ mod riscv_tests {
 
     use colored::*;
 
-    use crate::constants::MEMSIZE;
     use crate::Core;
     use crate::init;
     use crate::eval;
