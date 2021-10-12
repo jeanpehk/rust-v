@@ -7,8 +7,8 @@ mod riscv_tests {
 
     use colored::*;
 
-    use crate::constants::MEMSIZE;
     use crate::Core;
+    use crate::init;
     use crate::eval;
     use crate::elf::*;
 
@@ -28,14 +28,14 @@ mod riscv_tests {
                         if let None = item.path().extension() {
                             let elf: Vec<u8> = fs::read(item.path())
                                 .expect("Couldn't read file");
-                            let core = &mut Core { memory: [0;MEMSIZE], regs: [0;33] };
-                            load_elf(core, &elf);
+                            let mut core = init();
+                            load_elf(&mut core, &elf);
                             if !(st == "rv32ui-p-simple") { // this has no fail/pass addrs
                                 let (pass_addr, fail_addr) = get_riscv_tests_addrs(&elf);
                                 println!("Running set {}: {}", i+1, st);
-                                let res = execute_riscv_test(core, pass_addr, fail_addr);
+                                let res = execute_riscv_test(&mut core, pass_addr, fail_addr);
                                 assert_eq!(res, 1);
-                                success += execute_riscv_test(core, pass_addr, fail_addr);
+                                success += execute_riscv_test(&mut core, pass_addr, fail_addr);
                                 i += 1;
                             }
                         }
